@@ -1,0 +1,95 @@
+---
+title: Login
+api: POST /auth/login
+---
+
+Authenticates a user and returns a bearer token for subsequent API requests.
+
+## Request Body
+
+<ParamField body="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the login was successful
+</ResponseField>
+
+<ResponseField name="bearer_token" type="string">
+  JWT token for authenticating subsequent requests. Include this in the `Authorization` header as `Bearer {token}`
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  Basic user information
+  
+  <ResponseField name="user.id" type="integer">
+    Unique user identifier
+  </ResponseField>
+  
+  <ResponseField name="user.name" type="string">
+    User's first name
+  </ResponseField>
+  
+  <ResponseField name="user.lastname" type="string">
+    User's last name
+  </ResponseField>
+  
+  <ResponseField name="user.email" type="string">
+    User's email address
+  </ResponseField>
+  
+  <ResponseField name="user.addresses" type="array">
+    List of user's saved addresses
+  </ResponseField>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.example.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "bearer_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 123,
+    "name": "John",
+    "lastname": "Doe",
+    "email": "user@example.com",
+    "addresses": []
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="400 Bad Request">
+  Returned when email or password is missing or blank
+  
+  ```json
+  {
+    "success": false,
+    "bearer_token": null,
+    "user": null
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Returned when credentials are invalid
+</ResponseField>

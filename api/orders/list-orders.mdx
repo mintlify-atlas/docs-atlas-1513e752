@@ -1,0 +1,156 @@
+---
+title: "List Orders"
+api: "GET /api/purchase"
+description: "Retrieve all purchase orders"
+---
+
+Retrieves a list of all purchase orders in the system.
+
+<Warning>
+  This endpoint returns all purchases without filtering. For user-specific purchases, use the `/api/purchase/user-purchases` or `/api/purchase/my-purchases` endpoints.
+</Warning>
+
+## Authentication
+
+No authentication required for this endpoint.
+
+## Response
+
+Returns an array of purchase objects.
+
+<ResponseField name="id" type="integer">
+  The unique identifier for the purchase
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  The user who created the purchase
+  
+  <ResponseField name="user.id" type="integer">
+    User ID
+  </ResponseField>
+  
+  <ResponseField name="user.name" type="string">
+    User's name
+  </ResponseField>
+  
+  <ResponseField name="user.email" type="string">
+    User's email address
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="cart" type="object">
+  The cart associated with this purchase
+  
+  <ResponseField name="cart.id" type="integer">
+    Cart ID
+  </ResponseField>
+  
+  <ResponseField name="cart.finalPrice" type="float">
+    Total price of all items in the cart
+  </ResponseField>
+  
+  <ResponseField name="cart.items" type="array">
+    List of items in the cart
+    
+    <ResponseField name="cart.items[].id" type="integer">
+      Cart item ID
+    </ResponseField>
+    
+    <ResponseField name="cart.items[].quantity" type="integer">
+      Quantity of the product
+    </ResponseField>
+    
+    <ResponseField name="cart.items[].product" type="object">
+      Product details
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="date" type="string">
+  ISO 8601 timestamp when the purchase was created
+</ResponseField>
+
+<ResponseField name="reservationTime" type="string">
+  ISO 8601 timestamp for the reservation expiration
+</ResponseField>
+
+<ResponseField name="direction" type="string">
+  Shipping address for the order
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Purchase status. Possible values: `PENDING`, `CONFIRMED`, `CANCELLED`
+</ResponseField>
+
+## Example Request
+
+```bash
+curl https://api.example.com/api/purchase
+```
+
+## Example Response
+
+```json
+[
+  {
+    "id": 456,
+    "user": {
+      "id": 789,
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "cart": {
+      "id": 123,
+      "finalPrice": 299.99,
+      "items": [
+        {
+          "id": 1,
+          "quantity": 2,
+          "product": {
+            "id": 10,
+            "title": "Product Name",
+            "description": "Product description",
+            "price": 149.99,
+            "mediaSrc": ["image1.jpg", "image2.jpg"],
+            "productCode": 1001
+          }
+        }
+      ]
+    },
+    "date": "2026-03-13T10:30:00",
+    "reservationTime": "2026-03-13T14:30:00",
+    "direction": "123 Main St, City, Country",
+    "status": "PENDING"
+  },
+  {
+    "id": 457,
+    "user": {
+      "id": 790,
+      "name": "Jane Smith",
+      "email": "jane@example.com"
+    },
+    "cart": {
+      "id": 124,
+      "finalPrice": 149.99,
+      "items": [
+        {
+          "id": 2,
+          "quantity": 1,
+          "product": {
+            "id": 11,
+            "title": "Another Product",
+            "description": "Another description",
+            "price": 149.99,
+            "mediaSrc": ["image3.jpg"],
+            "productCode": 1002
+          }
+        }
+      ]
+    },
+    "date": "2026-03-13T11:00:00",
+    "reservationTime": "2026-03-13T15:00:00",
+    "direction": "456 Oak Ave, City, Country",
+    "status": "CONFIRMED"
+  }
+]
+```

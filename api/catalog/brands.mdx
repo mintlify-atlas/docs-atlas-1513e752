@@ -1,0 +1,63 @@
+---
+title: 'Get Brands'
+api: 'GET /brands'
+description: 'Retrieve all brands in the catalog'
+---
+
+Returns a list of all brands registered in the system. The endpoint returns brand details including their ID, name, and active status.
+
+## Request
+
+```bash
+curl --request GET \
+  --url https://api.example.com/brands \
+  --header 'Content-Type: application/json'
+```
+
+## Response
+
+Returns an array of brand objects.
+
+<ResponseField name="brands" type="array">
+  Array of brand objects
+
+  <ResponseField name="id" type="long">
+    Unique identifier for the brand
+  </ResponseField>
+
+  <ResponseField name="name" type="string">
+    Name of the brand
+  </ResponseField>
+
+  <ResponseField name="active" type="boolean">
+    Indicates whether the brand is currently active
+  </ResponseField>
+</ResponseField>
+
+### Success Response
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Nike",
+    "active": true
+  },
+  {
+    "id": 2,
+    "name": "Adidas",
+    "active": true
+  },
+  {
+    "id": 3,
+    "name": "Puma",
+    "active": false
+  }
+]
+```
+
+## Implementation Details
+
+This endpoint is implemented in the `BrandController.getAllBrands()` method, which retrieves all brands from the database and transforms them into `BrandDTO` objects. The response includes both active and inactive brands.
+
+Source: `BrandController.java:22-28`

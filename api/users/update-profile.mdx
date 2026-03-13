@@ -1,0 +1,109 @@
+---
+title: 'Update User Profile'
+api: 'PATCH /user/me'
+description: 'Update the authenticated user profile information'
+---
+
+Allows the authenticated user to update their profile information. Only the `name`, `lastname`, and `password` fields can be modified.
+
+## Authentication
+
+This endpoint requires a valid Bearer token in the Authorization header.
+
+## Request
+
+```bash
+curl --request PATCH \
+  --url https://api.example.com/user/me \
+  --header 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "name": "Jane",
+    "lastname": "Smith",
+    "password": "newSecurePassword123"
+  }'
+```
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for user authentication
+</ParamField>
+
+<ParamField body="name" type="string">
+  Updated first name
+</ParamField>
+
+<ParamField body="lastname" type="string">
+  Updated last name
+</ParamField>
+
+<ParamField body="password" type="string">
+  Updated password (must not be empty)
+</ParamField>
+
+## Response
+
+Returns the updated user object.
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the user
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Updated first name
+</ResponseField>
+
+<ResponseField name="lastname" type="string">
+  Updated last name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Email address (cannot be changed via this endpoint)
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  User role (cannot be changed via this endpoint)
+</ResponseField>
+
+<ResponseField name="accountActive" type="boolean">
+  Account active status
+</ResponseField>
+
+<ResponseField name="sessionActive" type="boolean">
+  Session active status
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "id": 123,
+  "name": "Jane",
+  "lastname": "Smith",
+  "email": "john.doe@example.com",
+  "role": "USER",
+  "accountActive": true,
+  "sessionActive": true
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Returned when the token is missing, invalid, or the user session is not active
+</ResponseField>
+
+```json
+"Usuario no logueado"
+```
+
+## Implementation Details
+
+This endpoint validates the user's authentication token and session, then updates only the fields provided in the request body. The `email` and `role` fields cannot be modified through this endpoint. Empty passwords are ignored.
+
+Source: `UserController.java:89-103`
+
+## Notes
+
+- Only provided fields will be updated; omitted fields remain unchanged
+- The password field must be non-empty to be updated
+- Email and role cannot be changed via this endpoint

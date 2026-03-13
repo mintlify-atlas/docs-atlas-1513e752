@@ -1,0 +1,279 @@
+---
+title: 'List Products'
+api: 'GET /api/products'
+description: 'Retrieve a paginated list of all active products'
+---
+
+Returns a paginated collection of all active products in the catalog. Only products with `active=true` are included in the response.
+
+## Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number (zero-indexed)
+</ParamField>
+
+<ParamField query="size" type="integer" default="20">
+  Number of items per page
+</ParamField>
+
+<ParamField query="sort" type="string">
+  Sort field and direction (e.g., `price,asc` or `title,desc`)
+</ParamField>
+
+## Response
+
+Returns a paginated response containing an array of product objects.
+
+<ResponseField name="content" type="array">
+  Array of product objects
+  
+  <Expandable title="ProductDTO">
+    <ResponseField name="id" type="integer">
+      Unique product identifier
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Product title
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Product description
+    </ResponseField>
+    
+    <ResponseField name="price" type="float">
+      Current price
+    </ResponseField>
+    
+    <ResponseField name="priceUnit" type="float">
+      Original price before discount
+    </ResponseField>
+    
+    <ResponseField name="discount" type="float">
+      Discount percentage (0-100)
+    </ResponseField>
+    
+    <ResponseField name="stock" type="integer">
+      Available inventory
+    </ResponseField>
+    
+    <ResponseField name="productCode" type="integer">
+      External product code
+    </ResponseField>
+    
+    <ResponseField name="mediaSrc" type="array">
+      Array of image URLs
+    </ResponseField>
+    
+    <ResponseField name="calification" type="float">
+      Average rating (0-5)
+    </ResponseField>
+    
+    <ResponseField name="brand" type="object">
+      Brand information
+      <Expandable title="BrandDTO">
+        <ResponseField name="id" type="integer">
+          Brand ID
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Brand name
+        </ResponseField>
+        <ResponseField name="active" type="boolean">
+          Whether brand is active
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="categories" type="array">
+      Array of category objects
+      <Expandable title="CategoryDTO">
+        <ResponseField name="id" type="integer">
+          Category ID
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Category name
+        </ResponseField>
+        <ResponseField name="active" type="boolean">
+          Whether category is active
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="isNew" type="boolean">
+      Whether product is marked as new
+    </ResponseField>
+    
+    <ResponseField name="isBestseller" type="boolean">
+      Whether product is a bestseller
+    </ResponseField>
+    
+    <ResponseField name="isFeatured" type="boolean">
+      Whether product is featured
+    </ResponseField>
+    
+    <ResponseField name="hero" type="boolean">
+      Whether product is a hero item
+    </ResponseField>
+    
+    <ResponseField name="active" type="boolean">
+      Whether product is active
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="pageable" type="object">
+  Pagination metadata
+  
+  <Expandable title="Pageable">
+    <ResponseField name="pageNumber" type="integer">
+      Current page number
+    </ResponseField>
+    
+    <ResponseField name="pageSize" type="integer">
+      Items per page
+    </ResponseField>
+    
+    <ResponseField name="offset" type="integer">
+      Offset in the total result set
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="totalPages" type="integer">
+  Total number of pages
+</ResponseField>
+
+<ResponseField name="totalElements" type="integer">
+  Total number of products
+</ResponseField>
+
+<ResponseField name="last" type="boolean">
+  Whether this is the last page
+</ResponseField>
+
+<ResponseField name="first" type="boolean">
+  Whether this is the first page
+</ResponseField>
+
+<ResponseField name="numberOfElements" type="integer">
+  Number of elements in current page
+</ResponseField>
+
+<ResponseField name="size" type="integer">
+  Page size
+</ResponseField>
+
+<ResponseField name="number" type="integer">
+  Current page number
+</ResponseField>
+
+<ResponseField name="empty" type="boolean">
+  Whether the page is empty
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --location 'http://localhost:8080/api/products?page=0&size=10' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products?page=0&size=10', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8080/api/products',
+    params={'page': 0, 'size': 10},
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'}
+)
+products = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "content": [
+    {
+      "id": 1,
+      "title": "Wireless Headphones",
+      "description": "Premium noise-cancelling wireless headphones",
+      "price": 199.99,
+      "priceUnit": 249.99,
+      "discount": 20.0,
+      "stock": 50,
+      "productCode": 1001,
+      "mediaSrc": [
+        "https://example.com/images/headphones-1.jpg",
+        "https://example.com/images/headphones-2.jpg"
+      ],
+      "calification": 4.5,
+      "brand": {
+        "id": 1,
+        "name": "AudioTech",
+        "active": true
+      },
+      "categories": [
+        {
+          "id": 1,
+          "name": "Electronics",
+          "active": true
+        },
+        {
+          "id": 5,
+          "name": "Audio",
+          "active": true
+        }
+      ],
+      "isNew": true,
+      "isBestseller": true,
+      "isFeatured": false,
+      "hero": false,
+      "active": true
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "offset": 0
+  },
+  "totalPages": 5,
+  "totalElements": 48,
+  "last": false,
+  "first": true,
+  "numberOfElements": 10,
+  "size": 10,
+  "number": 0,
+  "empty": false
+}
+```
+
+```json 500 - Internal Server Error
+{
+  "timestamp": "2026-03-13T10:15:30.000+00:00",
+  "status": 500,
+  "error": "Internal Server Error",
+  "message": "Error al obtener productos",
+  "path": "/api/products"
+}
+```
+
+</ResponseExample>
+
+## Implementation Notes
+
+- Only products with `active=true` are returned (see ProductController.java:64)
+- Results are filtered after pagination, so page size may vary
+- Default pagination uses Spring Data defaults (typically 20 items per page)
+- Authentication required via JWT token

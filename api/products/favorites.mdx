@@ -1,0 +1,293 @@
+---
+title: 'Favorite Products'
+description: 'Manage user favorite products'
+---
+
+Manage user favorite products including adding, removing, and retrieving favorite items.
+
+## Add to Favorites
+
+<api>`POST /api/products/favourite/{productCode}`</api>
+
+Add a product to the authenticated user's favorites list.
+
+### Path Parameters
+
+<ParamField path="productCode" type="integer" required>
+  The product code to add to favorites
+</ParamField>
+
+### Response
+
+Returns a success message string.
+
+### Request Example
+
+<RequestExample>
+
+```bash cURL
+curl --location --request POST 'http://localhost:8080/api/products/favourite/1001' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/favourite/1001', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const message = await response.text();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8080/api/products/favourite/1001',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'}
+)
+message = response.text
+```
+
+</RequestExample>
+
+### Response Example
+
+<ResponseExample>
+
+```text 200 - Success
+El producto con código 1001 se agregó a favoritos correctamente.
+```
+
+```text 200 - Already Favorite
+El producto ya está en favoritos.
+```
+
+```text 200 - User Not Found
+Usuario no encontrado.
+```
+
+```text 200 - Product Not Found
+Producto no encontrado.
+```
+
+</ResponseExample>
+
+### Implementation Notes
+
+- Requires authentication via JWT token (ProductController.java:369-370)
+- Prevents duplicate favorites (ProductController.java:376-378)
+- Emits an add favorite event to the communication API (ProductController.java:386-390)
+- Returns 200 status even for errors (not RESTful)
+
+---
+
+## Remove from Favorites
+
+<api>`DELETE /api/products/favourite/{productCode}`</api>
+
+Remove a product from the authenticated user's favorites list.
+
+### Path Parameters
+
+<ParamField path="productCode" type="integer" required>
+  The product code to remove from favorites
+</ParamField>
+
+### Response
+
+Returns a success message string.
+
+### Request Example
+
+<RequestExample>
+
+```bash cURL
+curl --location --request DELETE 'http://localhost:8080/api/products/favourite/1001' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/favourite/1001', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const message = await response.text();
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'http://localhost:8080/api/products/favourite/1001',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'}
+)
+message = response.text
+```
+
+</RequestExample>
+
+### Response Example
+
+<ResponseExample>
+
+```text 200 - Success
+El producto con código 1001 ya no es favorito.
+```
+
+```text 200 - User Not Found
+Usuario no encontrado.
+```
+
+```text 200 - Product Not Found
+Producto no encontrado.
+```
+
+</ResponseExample>
+
+### Implementation Notes
+
+- Requires authentication via JWT token (ProductController.java:398-400)
+- Uses @Transactional for database consistency (ProductController.java:395)
+- Emits a remove favorite event to the communication API (ProductController.java:407-411)
+- Successfully removes even if product wasn't in favorites (ProductController.java:405)
+
+---
+
+## Get Favorite Products
+
+<api>`GET /api/products/user/favourite-products`</api>
+
+Retrieve all favorite products for the authenticated user.
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer JWT token
+</ParamField>
+
+### Response
+
+Returns an array of favorite product objects.
+
+<ResponseField name="title" type="string">
+  Product title
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Product description
+</ResponseField>
+
+<ResponseField name="mediaSrc" type="array">
+  Array of image URLs
+</ResponseField>
+
+<ResponseField name="price" type="float">
+  Product price
+</ResponseField>
+
+<ResponseField name="stock" type="integer">
+  Available inventory
+</ResponseField>
+
+<ResponseField name="productCode" type="integer">
+  Product code
+</ResponseField>
+
+<ResponseField name="id" type="integer">
+  Product ID
+</ResponseField>
+
+### Request Example
+
+<RequestExample>
+
+```bash cURL
+curl --location 'http://localhost:8080/api/products/user/favourite-products' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/user/favourite-products', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const favorites = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8080/api/products/user/favourite-products',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'}
+)
+favorites = response.json()
+```
+
+</RequestExample>
+
+### Response Example
+
+<ResponseExample>
+
+```json 200 - Success
+[
+  {
+    "title": "Wireless Headphones",
+    "description": "Premium noise-cancelling wireless headphones",
+    "mediaSrc": [
+      "https://example.com/images/headphones-1.jpg",
+      "https://example.com/images/headphones-2.jpg"
+    ],
+    "price": 199.99,
+    "stock": 50,
+    "productCode": 1001,
+    "id": 1
+  },
+  {
+    "title": "Bluetooth Speaker",
+    "description": "Portable waterproof speaker",
+    "mediaSrc": [
+      "https://example.com/images/speaker-1.jpg"
+    ],
+    "price": 79.99,
+    "stock": 100,
+    "productCode": 1002,
+    "id": 2
+  }
+]
+```
+
+```json 200 - No Favorites
+[]
+```
+
+</ResponseExample>
+
+### Implementation Notes
+
+- Requires Authorization header with Bearer token (ProductController.java:417)
+- Email is extracted from JWT token using AuthService (ProductController.java:418-419)
+- Only returns active products (active != false) (ProductController.java:423-426)
+- Returns empty array if user not found (ProductController.java:421)
+- Response format is custom Map, not full ProductDTO (ProductController.java:427-439)
+
+## Important Notes
+
+### Product Code vs Product ID
+
+- **Product Code** (`productCode`): Used in favorite operations and review creation
+- **Product ID** (`id`): Used for getting reviews and product details
+- These are different values - product code is an external identifier
+
+### Authentication
+
+All favorite endpoints require JWT authentication:
+- Add/Remove favorites: Uses SecurityContextHolder (ProductController.java:369, 398)
+- Get favorites: Requires Authorization header with token extraction (ProductController.java:417-419)

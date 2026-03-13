@@ -1,0 +1,131 @@
+---
+title: "Create Order"
+api: "POST /api/purchase"
+description: "Create a new order from the user's cart"
+---
+
+Creates a new purchase order with status PENDING. The order is automatically associated with the authenticated user.
+
+## Authentication
+
+Requires Bearer token authentication via the `Authorization` header.
+
+## Request Body
+
+<ParamField body="cart" type="object" required>
+  The cart object to be associated with this purchase
+  
+  <ParamField body="cart.id" type="integer" required>
+    ID of the cart to associate with this purchase
+  </ParamField>
+</ParamField>
+
+<ParamField body="direction" type="string">
+  Shipping address for the order
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="integer">
+  The unique identifier for the purchase
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  The user who created the purchase
+  
+  <ResponseField name="user.id" type="integer">
+    User ID
+  </ResponseField>
+  
+  <ResponseField name="user.name" type="string">
+    User's name
+  </ResponseField>
+  
+  <ResponseField name="user.email" type="string">
+    User's email address
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="cart" type="object">
+  The cart associated with this purchase
+  
+  <ResponseField name="cart.id" type="integer">
+    Cart ID
+  </ResponseField>
+  
+  <ResponseField name="cart.finalPrice" type="float">
+    Total price of all items in the cart
+  </ResponseField>
+  
+  <ResponseField name="cart.items" type="array">
+    List of items in the cart
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="date" type="string">
+  ISO 8601 timestamp when the purchase was created
+</ResponseField>
+
+<ResponseField name="reservationTime" type="string">
+  ISO 8601 timestamp for the reservation expiration (typically 4 hours from creation)
+</ResponseField>
+
+<ResponseField name="direction" type="string">
+  Shipping address for the order
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Purchase status. Always `PENDING` for newly created orders. Possible values: `PENDING`, `CONFIRMED`, `CANCELLED`
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.example.com/api/purchase \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cart": {
+      "id": 123
+    },
+    "direction": "123 Main St, City, Country"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "id": 456,
+  "user": {
+    "id": 789,
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "cart": {
+    "id": 123,
+    "finalPrice": 299.99,
+    "items": [
+      {
+        "id": 1,
+        "quantity": 2,
+        "product": {
+          "id": 10,
+          "title": "Product Name",
+          "price": 149.99
+        }
+      }
+    ]
+  },
+  "date": "2026-03-13T10:30:00",
+  "reservationTime": "2026-03-13T14:30:00",
+  "direction": "123 Main St, City, Country",
+  "status": "PENDING"
+}
+```
+
+## Error Responses
+
+<ResponseField name="401 Unauthorized" type="error">
+  Returned when the authorization token is invalid or the user session is not active
+</ResponseField>

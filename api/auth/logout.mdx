@@ -1,0 +1,59 @@
+---
+title: Logout
+api: POST /auth/logout
+---
+
+Logs out the currently authenticated user by invalidating their session.
+
+## Authentication
+
+This endpoint requires a valid bearer token in the `Authorization` header.
+
+## Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token in the format: `Bearer {token}`
+</ParamField>
+
+## Response
+
+Returns a success message when the session is closed successfully.
+
+## Example Request
+
+```bash
+curl -X POST https://api.example.com/auth/logout \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## Example Response
+
+```json
+"Sesión cerrada correctamente"
+```
+
+## Error Responses
+
+<ResponseField name="400 Bad Request">
+  Returned when the Authorization header is missing or invalid
+  
+  ```json
+  "Cabecera Authorization inválida"
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Returned when the token is invalid
+  
+  ```json
+  "Token inválido"
+  ```
+</ResponseField>
+
+<ResponseField name="404 Not Found">
+  Returned when the user associated with the token is not found
+  
+  ```json
+  "Usuario no encontrado"
+  ```
+</ResponseField>

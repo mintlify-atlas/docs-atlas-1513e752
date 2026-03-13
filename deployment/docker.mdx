@@ -1,0 +1,366 @@
+---
+title: "Docker Deployment"
+description: "Deploy the Ecommerce Backend API using Docker and Docker Compose"
+---
+
+## Overview
+
+The Ecommerce Backend API uses a multi-stage Docker build with Maven and Amazon Corretto JDK 21. The application runs on port 8081, and integrates with Keycloak for authentication.
+
+## Docker Image
+
+### Multi-Stage Build
+
+The Dockerfile uses a two-stage build process to optimize image size:
+
+<Steps>
+  <Step title="Stage 1: Builder">
+    Uses Maven 3.9.11 with Eclipse Temurin JDK 21 to build the application JAR.
+    
+    ```dockerfile
+    FROM maven:3.9.11-eclipse-temurin-21 AS builder
+    WORKDIR /app
+    
+    # Copy pom.xml for dependency caching
+    COPY pom.xml .
+    RUN mvn dependency:go-offline -B
+    
+    # Copy source code
+    COPY src ./src
+    
+    # Build JAR (skip tests)
+    RUN mvn clean package -DskipTests
+    ```
+  </Step>
+  
+  <Step title="Stage 2: Runtime">
+    Uses Amazon Corretto 21 as the lightweight runtime environment.
+    
+    ```dockerfile
+    FROM amazoncorretto:21
+    WORKDIR /app
+    
+    # Copy JAR from builder stage
+    COPY --from=builder /app/target/app.jar app.jar
+    
+    # Expose application port
+    EXPOSE 8080
+    
+    # Start application
+    ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+    ```
+  </Step>
+</Steps>
+
+### Building the Image
+
+<CodeGroup>
+```bash Build Image
+docker build -t ecommerce-backend:latest .
+```
+
+```bash Build with Tag
+docker build -t ecommerce-backend:v1.0.0 .
+```
+
+```bash Build with No Cache
+docker build --no-cache -t ecommerce-backend:latest .
+```
+</CodeGroup>
+
+## Running with Docker
+
+### Basic Docker Run
+
+```bash
+docker run -d \
+  --name ecommerce-backend \
+  -p 8081:8081 \
+  -e SERVER_PORT=8081 \
+  -e SPRING_DATASOURCE_URL="mysql-host:3306/ecommerce" \
+  -e SPRING_DATASOURCE_USERNAME="your_db_user" \
+  -e SPRING_DATASOURCE_PASSWORD="your_db_password" \
+  -e JWT_SECRET="your-jwt-secret-key" \
+  -e KEYCLOAK_TOKEN_URL="http://keycloak:8080/realms/ecommerce/protocol/openid-connect/token" \
+  -e KEYCLOAK_CLIENT_SECRET="your-client-secret" \
+  -e KAFKA_BOOTSTRAP="kafka:9092" \
+  -e KAFKA_USERNAME="kafka_user" \
+  -e KAFKA_PASSWORD="kafka_password" \
+  -e SPRING_MAIL_USERNAME="your-email@gmail.com" \
+  -e SPRING_MAIL_PASSWORD="your-app-password" \
+  ecommerce-backend:latest
+```
+
+### Required Environment Variables
+
+<ParamField path="SERVER_PORT" type="integer" default="8081">
+  Application server port
+</ParamField>
+
+<ParamField path="SPRING_DATASOURCE_URL" type="string" required>
+  MySQL JDBC connection string (e.g., `mysql-host:3306/ecommerce`)
+</ParamField>
+
+<ParamField path="SPRING_DATASOURCE_USERNAME" type="string" required>
+  Database username
+</ParamField>
+
+<ParamField path="SPRING_DATASOURCE_PASSWORD" type="string" required>
+  Database password
+</ParamField>
+
+<ParamField path="JWT_SECRET" type="string" required>
+  Secret key for JWT token signing
+</ParamField>
+
+<ParamField path="KEYCLOAK_TOKEN_URL" type="string" default="http://localhost:8080/realms/ecommerce/protocol/openid-connect/token">
+  Keycloak token endpoint URL
+</ParamField>
+
+<ParamField path="KEYCLOAK_CLIENT_SECRET" type="string" required>
+  Keycloak client secret for the `ventas-app` client
+</ParamField>
+
+<ParamField path="KAFKA_BOOTSTRAP" type="string" default="localhost:9092">
+  Kafka bootstrap servers
+</ParamField>
+
+<ParamField path="KAFKA_USERNAME" type="string" required>
+  Kafka SASL username (SCRAM-SHA-512)
+</ParamField>
+
+<ParamField path="KAFKA_PASSWORD" type="string" required>
+  Kafka SASL password (SCRAM-SHA-512)
+</ParamField>
+
+<ParamField path="SPRING_MAIL_USERNAME" type="string" required>
+  Gmail SMTP username
+</ParamField>
+
+<ParamField path="SPRING_MAIL_PASSWORD" type="string" required>
+  Gmail app password for SMTP
+</ParamField>
+
+### Optional Environment Variables
+
+<ParamField path="CORE_API_URL" type="string" default="http://localhost:8086">
+  Core API communication service URL
+</ParamField>
+
+<ParamField path="KAFKA_MIDDLEWARE_URL" type="string" default="http://localhost:8090">
+  Kafka middleware communication service URL
+</ParamField>
+
+## Docker Compose Setup
+
+### Keycloak Service
+
+The provided `docker-compose.yml` sets up Keycloak for development:
+
+```yaml docker-compose.yml
+version: '3.8'
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.4
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_IMPORT: /opt/keycloak/data/import/realm-export.json
+    command: ["start-dev"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/ecommerce"]
+      interval: 10s
+      retries: 10
+    restart: unless-stopped
+```
+
+### Complete Docker Compose Example
+
+<Steps>
+  <Step title="Create docker-compose.yml">
+    Create a complete compose file with all services:
+    
+    ```yaml docker-compose.yml
+    version: '3.8'
+    services:
+      keycloak:
+        image: quay.io/keycloak/keycloak:24.0.4
+        environment:
+          KEYCLOAK_ADMIN: admin
+          KEYCLOAK_ADMIN_PASSWORD: admin
+          KC_IMPORT: /opt/keycloak/data/import/realm-export.json
+        command: ["start-dev"]
+        ports:
+          - "8080:8080"
+        volumes:
+          - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+        healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8080/realms/ecommerce"]
+          interval: 10s
+          retries: 10
+        restart: unless-stopped
+      
+      ecommerce-backend:
+        build: .
+        ports:
+          - "8081:8081"
+        environment:
+          SERVER_PORT: 8081
+          SPRING_DATASOURCE_URL: "mysql:3306/ecommerce"
+          SPRING_DATASOURCE_USERNAME: "ecommerce_user"
+          SPRING_DATASOURCE_PASSWORD: "ecommerce_pass"
+          JWT_SECRET: "your-jwt-secret-key-min-256-bits"
+          KEYCLOAK_TOKEN_URL: "http://keycloak:8080/realms/ecommerce/protocol/openid-connect/token"
+          KEYCLOAK_CLIENT_SECRET: "ecommerce-secret"
+          KAFKA_BOOTSTRAP: "kafka:9092"
+          KAFKA_USERNAME: "kafka_user"
+          KAFKA_PASSWORD: "kafka_pass"
+          SPRING_MAIL_USERNAME: "your-email@gmail.com"
+          SPRING_MAIL_PASSWORD: "your-app-password"
+        depends_on:
+          keycloak:
+            condition: service_healthy
+        restart: unless-stopped
+    ```
+  </Step>
+  
+  <Step title="Start Services">
+    Launch all services:
+    
+    ```bash
+    docker-compose up -d
+    ```
+  </Step>
+  
+  <Step title="View Logs">
+    Monitor application logs:
+    
+    ```bash
+    docker-compose logs -f ecommerce-backend
+    ```
+  </Step>
+  
+  <Step title="Access Services">
+    - Application API: `http://localhost:8081/api`
+    - Keycloak Admin Console: `http://localhost:8080` (admin/admin)
+    - Keycloak Realm: `ecommerce`
+    - Keycloak Client: `ventas-app`
+  </Step>
+</Steps>
+
+### Keycloak Configuration
+
+The Keycloak service includes:
+
+- **Realm**: `ecommerce` (imported from `realm-export.json`)
+- **Client ID**: `ecommerce-module` and `ventas-app`
+- **Client Secret**: `ecommerce-secret` (configured in realm export)
+- **Token Endpoint**: `http://localhost:8080/realms/ecommerce/protocol/openid-connect/token`
+- **Admin Credentials**: `admin/admin` (development only)
+
+<Warning>
+  The docker-compose configuration uses development mode (`start-dev`) and default credentials. Do not use this setup in production.
+</Warning>
+
+## Port Mappings
+
+| Service | Container Port | Host Port | Description |
+|---------|---------------|-----------|-------------|
+| Ecommerce Backend | 8081 | 8081 | Main application API |
+| Keycloak | 8080 | 8080 | Authentication service |
+
+<Note>
+  The Dockerfile exposes port 8080, but the application runs on port 8081 by default (configured via `SERVER_PORT` environment variable).
+</Note>
+
+## Volume Mounts
+
+The Keycloak service mounts the realm configuration:
+
+```bash
+./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+```
+
+This volume is mounted as read-only (`:ro`) and imports the ecommerce realm on startup.
+
+## Health Checks
+
+### Keycloak Health Check
+
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8080/realms/ecommerce"]
+  interval: 10s
+  retries: 10
+```
+
+### Application Health Check
+
+Add a custom health check for the backend:
+
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8081/api/actuator/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Application fails to connect to MySQL">
+    Ensure the `SPRING_DATASOURCE_URL` includes the correct host and port. If running MySQL in Docker, use the service name instead of `localhost`.
+    
+    ```bash
+    # Check MySQL connectivity
+    docker exec ecommerce-backend curl -v telnet://mysql:3306
+    ```
+  </Accordion>
+  
+  <Accordion title="Kafka authentication errors">
+    Verify that:
+    - `KAFKA_USERNAME` and `KAFKA_PASSWORD` are correctly set
+    - Kafka is configured with SASL_PLAINTEXT and SCRAM-SHA-512
+    - The bootstrap servers address is reachable
+    
+    ```bash
+    # Check Kafka connectivity
+    docker exec ecommerce-backend curl -v telnet://kafka:9092
+    ```
+  </Accordion>
+  
+  <Accordion title="Keycloak connection refused">
+    Wait for Keycloak to become healthy before starting the backend:
+    
+    ```yaml
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    ```
+  </Accordion>
+  
+  <Accordion title="Build fails during Maven dependency download">
+    If you're behind a corporate proxy, configure Maven proxy settings:
+    
+    ```dockerfile
+    ENV MAVEN_OPTS="-Dhttp.proxyHost=proxy.example.com -Dhttp.proxyPort=8080"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="AWS Deployment" icon="aws" href="/deployment/aws">
+    Deploy to AWS using ECS, RDS, and MSK
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration/environment">
+    Complete environment variable reference
+  </Card>
+</CardGroup>

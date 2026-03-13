@@ -1,0 +1,252 @@
+---
+title: 'Get Product'
+api: 'GET /api/products/{id}'
+description: 'Retrieve a single product by ID with related products'
+---
+
+Returns detailed information about a specific product along with related products based on shared brand or category.
+
+## Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the product
+</ParamField>
+
+## Response
+
+Returns a product object with related products.
+
+<ResponseField name="product" type="object">
+  Main product details
+  
+  <Expandable title="ProductDTO">
+    <ResponseField name="id" type="integer">
+      Unique product identifier
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Product title
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Product description
+    </ResponseField>
+    
+    <ResponseField name="price" type="float">
+      Current price
+    </ResponseField>
+    
+    <ResponseField name="priceUnit" type="float">
+      Original price before discount
+    </ResponseField>
+    
+    <ResponseField name="discount" type="float">
+      Discount percentage (0-100)
+    </ResponseField>
+    
+    <ResponseField name="stock" type="integer">
+      Available inventory
+    </ResponseField>
+    
+    <ResponseField name="productCode" type="integer">
+      External product code
+    </ResponseField>
+    
+    <ResponseField name="mediaSrc" type="array">
+      Array of image URLs
+    </ResponseField>
+    
+    <ResponseField name="calification" type="float">
+      Average rating (0-5)
+    </ResponseField>
+    
+    <ResponseField name="brand" type="object">
+      Brand information
+      <Expandable title="BrandDTO">
+        <ResponseField name="id" type="integer">
+          Brand ID
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Brand name
+        </ResponseField>
+        <ResponseField name="active" type="boolean">
+          Whether brand is active
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="categories" type="array">
+      Array of category objects
+      <Expandable title="CategoryDTO">
+        <ResponseField name="id" type="integer">
+          Category ID
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Category name
+        </ResponseField>
+        <ResponseField name="active" type="boolean">
+          Whether category is active
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="isNew" type="boolean">
+      Whether product is marked as new
+    </ResponseField>
+    
+    <ResponseField name="isBestseller" type="boolean">
+      Whether product is a bestseller
+    </ResponseField>
+    
+    <ResponseField name="isFeatured" type="boolean">
+      Whether product is featured
+    </ResponseField>
+    
+    <ResponseField name="hero" type="boolean">
+      Whether product is a hero item
+    </ResponseField>
+    
+    <ResponseField name="active" type="boolean">
+      Whether product is active
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="relatedProducts" type="array">
+  Array of related products that share the same brand or categories
+  
+  <Expandable title="ProductDTO[]">
+    Same structure as product object above
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --location 'http://localhost:8080/api/products/1' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/1', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8080/api/products/1',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'}
+)
+product_data = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "product": {
+    "id": 1,
+    "title": "Wireless Headphones",
+    "description": "Premium noise-cancelling wireless headphones",
+    "price": 199.99,
+    "priceUnit": 249.99,
+    "discount": 20.0,
+    "stock": 50,
+    "productCode": 1001,
+    "mediaSrc": [
+      "https://example.com/images/headphones-1.jpg",
+      "https://example.com/images/headphones-2.jpg"
+    ],
+    "calification": 4.5,
+    "brand": {
+      "id": 1,
+      "name": "AudioTech",
+      "active": true
+    },
+    "categories": [
+      {
+        "id": 1,
+        "name": "Electronics",
+        "active": true
+      },
+      {
+        "id": 5,
+        "name": "Audio",
+        "active": true
+      }
+    ],
+    "isNew": true,
+    "isBestseller": true,
+    "isFeatured": false,
+    "hero": false,
+    "active": true
+  },
+  "relatedProducts": [
+    {
+      "id": 2,
+      "title": "Bluetooth Speaker",
+      "description": "Portable waterproof speaker",
+      "price": 79.99,
+      "priceUnit": 99.99,
+      "discount": 20.0,
+      "stock": 100,
+      "productCode": 1002,
+      "mediaSrc": [
+        "https://example.com/images/speaker-1.jpg"
+      ],
+      "calification": 4.2,
+      "brand": {
+        "id": 1,
+        "name": "AudioTech",
+        "active": true
+      },
+      "categories": [
+        {
+          "id": 5,
+          "name": "Audio",
+          "active": true
+        }
+      ],
+      "isNew": false,
+      "isBestseller": true,
+      "isFeatured": true,
+      "hero": false,
+      "active": true
+    }
+  ]
+}
+```
+
+```json 404 - Product Not Found
+{
+  "timestamp": "2026-03-13T10:15:30.000+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Producto no encontrado",
+  "path": "/api/products/999"
+}
+```
+
+</ResponseExample>
+
+## Related Products Logic
+
+Related products are determined by:
+- Products sharing the same brand ID (ProductController.java:297)
+- Products sharing at least one category ID (ProductController.java:298)
+- Only active products are included (ProductController.java:295)
+- The requested product itself is excluded from related products (ProductController.java:296)
+
+## Error Cases
+
+- **404 Not Found**: Product ID does not exist
+- **404 Not Found**: Product exists but is not active (active=false)

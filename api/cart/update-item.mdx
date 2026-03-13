@@ -1,0 +1,69 @@
+---
+title: "Update Cart Item"
+api: "PATCH /cart/items/{id}"
+description: "Update the quantity of an item in the shopping cart"
+---
+
+<Warning>
+  **This endpoint is not currently implemented in the API.**
+  
+  The current implementation uses a full cart replacement model. To modify cart items, you need to create a new cart with the updated items using the [Create Cart](/api/cart/add-item) endpoint.
+</Warning>
+
+## Alternative Approach
+
+To update cart items with the current API:
+
+1. [Get the current cart](/api/cart/get-cart) to retrieve all items
+2. Modify the items array in your application
+3. [Create a new cart](/api/cart/add-item) with the updated items
+4. Optionally [delete the old cart](/api/cart/clear-cart)
+
+## Planned Implementation
+
+When implemented, this endpoint would:
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the cart item to update
+</ParamField>
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+</ParamField>
+
+### Request Body
+
+<ParamField body="quantity" type="integer" required>
+  New quantity for the cart item
+</ParamField>
+
+### Expected Response
+
+<ResponseField name="id" type="integer">
+  Cart item ID
+</ResponseField>
+
+<ResponseField name="quantity" type="integer">
+  Updated quantity
+</ResponseField>
+
+<ResponseField name="product" type="object">
+  Associated product details
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL (Not Implemented)
+curl -X PATCH "https://api.example.com/cart/items/1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quantity": 3
+  }'
+```
+
+</RequestExample>

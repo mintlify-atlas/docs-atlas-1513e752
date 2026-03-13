@@ -1,0 +1,386 @@
+---
+title: 'Product Reviews'
+description: 'Create and retrieve product reviews with ratings'
+---
+
+Manage product reviews including creating new reviews and fetching existing reviews with average ratings.
+
+## Add Review
+
+<api>`POST /api/products/code/{productCode}/review`</api>
+
+Create a new review for a product. Users can only review a product once.
+
+### Path Parameters
+
+<ParamField path="productCode" type="integer" required>
+  The product code (not the product ID)
+</ParamField>
+
+### Request Body
+
+<ParamField body="calification" type="float" required>
+  Rating score (typically 0-5)
+</ParamField>
+
+<ParamField body="description" type="string">
+  Review text/comment
+</ParamField>
+
+### Response
+
+<ResponseField name="productId" type="integer">
+  Product ID
+</ResponseField>
+
+<ResponseField name="productTitle" type="string">
+  Product title
+</ResponseField>
+
+<ResponseField name="promedio" type="float">
+  Updated average rating across all reviews
+</ResponseField>
+
+<ResponseField name="reviews" type="array">
+  All reviews for this product
+  
+  <Expandable title="ReviewDTO">
+    <ResponseField name="id" type="integer">
+      Review ID
+    </ResponseField>
+    
+    <ResponseField name="calification" type="float">
+      Rating score
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Review text
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Request Example
+
+<RequestExample>
+
+```bash cURL
+curl --location 'http://localhost:8080/api/products/code/1001/review' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+--data '{
+  "calification": 4.5,
+  "description": "Great product! Highly recommend."
+}'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/code/1001/review', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  },
+  body: JSON.stringify({
+    calification: 4.5,
+    description: 'Great product! Highly recommend.'
+  })
+});
+const review = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8080/api/products/code/1001/review',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'},
+    json={
+        'calification': 4.5,
+        'description': 'Great product! Highly recommend.'
+    }
+)
+review_data = response.json()
+```
+
+</RequestExample>
+
+### Response Example
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "productId": 1,
+  "productTitle": "Wireless Headphones",
+  "promedio": 4.3,
+  "reviews": [
+    {
+      "id": 1,
+      "calification": 4.0,
+      "description": "Good sound quality"
+    },
+    {
+      "id": 2,
+      "calification": 4.5,
+      "description": "Great product! Highly recommend."
+    },
+    {
+      "id": 3,
+      "calification": 4.5,
+      "description": "Excellent"
+    }
+  ]
+}
+```
+
+```json 404 - Product Not Found
+{
+  "timestamp": "2026-03-13T10:15:30.000+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Producto no encontrado por productCode=9999",
+  "path": "/api/products/code/9999/review"
+}
+```
+
+```json 409 - Already Reviewed
+{
+  "timestamp": "2026-03-13T10:15:30.000+00:00",
+  "status": 409,
+  "error": "Conflict",
+  "message": "Ya has calificado/comentado este producto.",
+  "path": "/api/products/code/1001/review"
+}
+```
+
+</ResponseExample>
+
+### Implementation Notes
+
+- Requires authentication via JWT token (ProductController.java:150)
+- Users can only review a product once (ProductController.java:158-160)
+- Average rating is automatically calculated and updated (ProductController.java:169)
+- Product's `calification` field is updated with new average (ProductController.java:171-172)
+- Emits a review event to the communication API (ProductController.java:174-180)
+
+---
+
+## Get Reviews
+
+<api>`GET /api/products/{id}/reviews`</api>
+
+Retrieve all reviews for a product with the average rating.
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The product ID (not product code)
+</ParamField>
+
+### Response
+
+<ResponseField name="productId" type="integer">
+  Product ID
+</ResponseField>
+
+<ResponseField name="productTitle" type="string">
+  Product title
+</ResponseField>
+
+<ResponseField name="promedio" type="float">
+  Average rating across all reviews
+</ResponseField>
+
+<ResponseField name="reviews" type="array">
+  All reviews for this product
+  
+  <Expandable title="ReviewDTO">
+    <ResponseField name="id" type="integer">
+      Review ID
+    </ResponseField>
+    
+    <ResponseField name="calification" type="float">
+      Rating score
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Review text
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Request Example
+
+<RequestExample>
+
+```bash cURL
+curl --location 'http://localhost:8080/api/products/1/reviews' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/1/reviews', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const reviews = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8080/api/products/1/reviews',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'}
+)
+reviews = response.json()
+```
+
+</RequestExample>
+
+### Response Example
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "productId": 1,
+  "productTitle": "Wireless Headphones",
+  "promedio": 4.3,
+  "reviews": [
+    {
+      "id": 1,
+      "calification": 4.0,
+      "description": "Good sound quality"
+    },
+    {
+      "id": 2,
+      "calification": 4.5,
+      "description": "Great product! Highly recommend."
+    },
+    {
+      "id": 3,
+      "calification": 4.5,
+      "description": "Excellent"
+    }
+  ]
+}
+```
+
+```json 404 - Product Not Found
+{
+  "timestamp": "2026-03-13T10:15:30.000+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Producto no encontrado",
+  "path": "/api/products/999/reviews"
+}
+```
+
+</ResponseExample>
+
+### Implementation Notes
+
+- Average rating defaults to 0.0 if no reviews exist (ProductController.java:210)
+- All reviews are returned (no pagination)
+- Does not require authentication
+
+---
+
+## Get My Review
+
+<api>`GET /api/products/code/{productCode}/review/me`</api>
+
+Retrieve the authenticated user's review for a specific product.
+
+### Path Parameters
+
+<ParamField path="productCode" type="integer" required>
+  The product code
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="integer">
+  Review ID
+</ResponseField>
+
+<ResponseField name="calification" type="float">
+  Rating score
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Review text
+</ResponseField>
+
+### Request Example
+
+<RequestExample>
+
+```bash cURL
+curl --location 'http://localhost:8080/api/products/code/1001/review/me' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/code/1001/review/me', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+const myReview = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'http://localhost:8080/api/products/code/1001/review/me',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'}
+)
+my_review = response.json()
+```
+
+</RequestExample>
+
+### Response Example
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "id": 2,
+  "calification": 4.5,
+  "description": "Great product! Highly recommend."
+}
+```
+
+```json 401 - Unauthorized
+{
+  "timestamp": "2026-03-13T10:15:30.000+00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Usuario no autenticado",
+  "path": "/api/products/code/1001/review/me"
+}
+```
+
+```json 404 - No Review Found
+{
+  "timestamp": "2026-03-13T10:15:30.000+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "No has calificado/comentado este producto.",
+  "path": "/api/products/code/1001/review/me"
+}
+```
+
+</ResponseExample>
+
+### Implementation Notes
+
+- Requires authentication (ProductController.java:193-194)
+- Returns only the authenticated user's review (ProductController.java:198)

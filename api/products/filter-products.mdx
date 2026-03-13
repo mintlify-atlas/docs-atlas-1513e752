@@ -1,0 +1,331 @@
+---
+title: 'Filter Products'
+api: 'POST /api/products/filter'
+description: 'Filter products by price, brand, category with sorting and pagination'
+---
+
+Filter and sort products based on multiple criteria including price range, brand, and category. Supports both single and multiple brand/category filtering.
+
+## Request Body
+
+<ParamField body="priceMin" type="float">
+  Minimum price threshold
+</ParamField>
+
+<ParamField body="priceMax" type="float">
+  Maximum price threshold
+</ParamField>
+
+<ParamField body="brandCode" type="integer">
+  Single brand code to filter by (deprecated, use brandCodes instead)
+</ParamField>
+
+<ParamField body="brandCodes" type="array">
+  Array of brand codes to filter by (supports multiple brands)
+</ParamField>
+
+<ParamField body="categoryCode" type="integer">
+  Single category code to filter by (deprecated, use categoryCodes instead)
+</ParamField>
+
+<ParamField body="categoryCodes" type="array">
+  Array of category codes to filter by (supports multiple categories)
+</ParamField>
+
+<ParamField body="sortBy" type="string">
+  Sort field: `price` or `relevance` (relevance sorts by calification)
+</ParamField>
+
+<ParamField body="sortOrder" type="string">
+  Sort direction: `asc` or `desc`
+</ParamField>
+
+<ParamField body="page" type="integer" default="0">
+  Page number (zero-indexed)
+</ParamField>
+
+<ParamField body="size" type="integer" default="20">
+  Number of items per page
+</ParamField>
+
+## Response
+
+Returns a paginated response with filtered products.
+
+<ResponseField name="content" type="array">
+  Array of filtered product objects
+  
+  <Expandable title="ProductDTO">
+    <ResponseField name="id" type="integer">
+      Unique product identifier
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Product title
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Product description
+    </ResponseField>
+    
+    <ResponseField name="price" type="float">
+      Current price
+    </ResponseField>
+    
+    <ResponseField name="priceUnit" type="float">
+      Original price before discount
+    </ResponseField>
+    
+    <ResponseField name="discount" type="float">
+      Discount percentage
+    </ResponseField>
+    
+    <ResponseField name="stock" type="integer">
+      Available inventory
+    </ResponseField>
+    
+    <ResponseField name="productCode" type="integer">
+      External product code
+    </ResponseField>
+    
+    <ResponseField name="mediaSrc" type="array">
+      Array of image URLs
+    </ResponseField>
+    
+    <ResponseField name="calification" type="float">
+      Average rating
+    </ResponseField>
+    
+    <ResponseField name="brand" type="object">
+      Brand information
+    </ResponseField>
+    
+    <ResponseField name="categories" type="array">
+      Array of category objects
+    </ResponseField>
+    
+    <ResponseField name="isNew" type="boolean">
+      Whether product is new
+    </ResponseField>
+    
+    <ResponseField name="isBestseller" type="boolean">
+      Whether product is a bestseller
+    </ResponseField>
+    
+    <ResponseField name="isFeatured" type="boolean">
+      Whether product is featured
+    </ResponseField>
+    
+    <ResponseField name="hero" type="boolean">
+      Whether product is a hero item
+    </ResponseField>
+    
+    <ResponseField name="active" type="boolean">
+      Whether product is active
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="pageable" type="object">
+  Pagination metadata
+</ResponseField>
+
+<ResponseField name="totalPages" type="integer">
+  Total number of pages
+</ResponseField>
+
+<ResponseField name="totalElements" type="integer">
+  Total number of filtered products
+</ResponseField>
+
+<ResponseField name="last" type="boolean">
+  Whether this is the last page
+</ResponseField>
+
+<ResponseField name="first" type="boolean">
+  Whether this is the first page
+</ResponseField>
+
+<ResponseField name="size" type="integer">
+  Page size
+</ResponseField>
+
+<ResponseField name="number" type="integer">
+  Current page number
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --location 'http://localhost:8080/api/products/filter' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer YOUR_JWT_TOKEN' \
+--data '{
+  "priceMin": 50.0,
+  "priceMax": 200.0,
+  "brandCodes": [1, 2],
+  "categoryCodes": [5],
+  "sortBy": "price",
+  "sortOrder": "asc",
+  "page": 0,
+  "size": 10
+}'
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:8080/api/products/filter', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  },
+  body: JSON.stringify({
+    priceMin: 50.0,
+    priceMax: 200.0,
+    brandCodes: [1, 2],
+    categoryCodes: [5],
+    sortBy: 'price',
+    sortOrder: 'asc',
+    page: 0,
+    size: 10
+  })
+});
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'http://localhost:8080/api/products/filter',
+    headers={'Authorization': 'Bearer YOUR_JWT_TOKEN'},
+    json={
+        'priceMin': 50.0,
+        'priceMax': 200.0,
+        'brandCodes': [1, 2],
+        'categoryCodes': [5],
+        'sortBy': 'price',
+        'sortOrder': 'asc',
+        'page': 0,
+        'size': 10
+    }
+)
+filtered_products = response.json()
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "content": [
+    {
+      "id": 2,
+      "title": "Bluetooth Speaker",
+      "description": "Portable waterproof speaker",
+      "price": 79.99,
+      "priceUnit": 99.99,
+      "discount": 20.0,
+      "stock": 100,
+      "productCode": 1002,
+      "mediaSrc": [
+        "https://example.com/images/speaker-1.jpg"
+      ],
+      "calification": 4.2,
+      "brand": {
+        "id": 1,
+        "name": "AudioTech",
+        "active": true
+      },
+      "categories": [
+        {
+          "id": 5,
+          "name": "Audio",
+          "active": true
+        }
+      ],
+      "isNew": false,
+      "isBestseller": true,
+      "isFeatured": true,
+      "hero": false,
+      "active": true
+    },
+    {
+      "id": 1,
+      "title": "Wireless Headphones",
+      "description": "Premium noise-cancelling wireless headphones",
+      "price": 199.99,
+      "priceUnit": 249.99,
+      "discount": 20.0,
+      "stock": 50,
+      "productCode": 1001,
+      "mediaSrc": [
+        "https://example.com/images/headphones-1.jpg"
+      ],
+      "calification": 4.5,
+      "brand": {
+        "id": 1,
+        "name": "AudioTech",
+        "active": true
+      },
+      "categories": [
+        {
+          "id": 5,
+          "name": "Audio",
+          "active": true
+        }
+      ],
+      "isNew": true,
+      "isBestseller": true,
+      "isFeatured": false,
+      "hero": false,
+      "active": true
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "offset": 0
+  },
+  "totalPages": 1,
+  "totalElements": 2,
+  "last": true,
+  "first": true,
+  "size": 10,
+  "number": 0,
+  "empty": false
+}
+```
+
+</ResponseExample>
+
+## Filter Logic
+
+### Price Filtering
+- Products with `price < priceMin` are excluded (ProductController.java:229)
+- Products with `price > priceMax` are excluded (ProductController.java:232)
+- Products with null prices are excluded if price filters are applied
+
+### Brand Filtering
+- `brandCodes` array takes precedence over single `brandCode` (ProductController.java:236)
+- Products must match at least one brand code in the array
+- Products without a brand are excluded
+
+### Category Filtering
+- `categoryCodes` array takes precedence over single `categoryCode` (ProductController.java:246)
+- Products must have at least one category matching any code in the array
+- Products without categories are excluded
+
+### Sorting
+- **price**: Sort by product price (ProductController.java:260-265)
+- **relevance**: Sort by calification/rating (ProductController.java:266-271)
+- Default order is ascending unless `sortOrder=desc`
+
+### Active Products
+- Only products with `active=true` are included (ProductController.java:225)
+
+## Pagination
+- Default page: 0
+- Default size: 20
+- Manual pagination applied after filtering and sorting (ProductController.java:275-280)

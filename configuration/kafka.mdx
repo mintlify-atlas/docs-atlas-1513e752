@@ -1,0 +1,536 @@
+---
+title: 'Kafka Configuration'
+description: 'Apache Kafka event streaming configuration, SASL authentication, and message consumer/producer setup'
+---
+
+## Overview
+
+The Ecommerce Backend API uses Apache Kafka for event-driven communication between microservices. The application consumes events from the `inventario` topic and publishes events through a Core API middleware to both `ventas` and `inventario` topics.
+
+## Kafka Broker Configuration
+
+### Bootstrap Servers
+
+```properties
+spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP:localhost:9092}
+```
+
+<ParamField path="KAFKA_BOOTSTRAP" type="string" default="localhost:9092">
+  Comma-separated list of Kafka broker addresses.
+  
+  **Single broker:** `localhost:9092`
+  
+  **Multiple brokers:** `broker1:9092,broker2:9092,broker3:9092`
+</ParamField>
+
+### SASL Authentication (SCRAM-SHA-512)
+
+The application uses SASL/SCRAM-SHA-512 authentication with PLAINTEXT protocol:
+
+```properties
+spring.kafka.properties.security.protocol=SASL_PLAINTEXT
+spring.kafka.properties.sasl.mechanism=SCRAM-SHA-512
+spring.kafka.properties.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_USERNAME}" password="${KAFKA_PASSWORD}";
+```
+
+<ParamField path="KAFKA_USERNAME" type="string" required>
+  Kafka SASL username for authentication across all clients (admin, consumer, producer).
+</ParamField>
+
+<ParamField path="KAFKA_PASSWORD" type="string" required>
+  Kafka SASL password for authentication.
+</ParamField>
+
+<Warning>
+  For production environments, use SASL_SSL instead of SASL_PLAINTEXT to encrypt data in transit:
+  ```properties
+  spring.kafka.properties.security.protocol=SASL_SSL
+  spring.kafka.properties.ssl.truststore.location=/path/to/truststore.jks
+  spring.kafka.properties.ssl.truststore.password=truststore_password
+  ```
+</Warning>
+
+## Consumer Configuration
+
+### General Consumer Settings
+
+```properties
+spring.kafka.consumer.group-id=ventas-ms
+spring.kafka.consumer.auto-offset-reset=earliest
+spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer
+```
+
+<ParamField path="spring.kafka.consumer.group-id" type="string" default="ventas-ms">
+  Consumer group ID for coordinating message consumption and offset management.
+</ParamField>
+
+<ParamField path="spring.kafka.consumer.auto-offset-reset" type="string" default="earliest">
+  Offset reset strategy when no initial offset exists:
+  - `earliest` - Start from the beginning of the topic
+  - `latest` - Start from the end (skip existing messages)
+  - `none` - Throw exception if no offset found
+</ParamField>
+
+### JSON Deserialization
+
+The application deserializes Kafka messages as JSON into `EventMessage` objects:
+
+```properties
+spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer
+spring.kafka.consumer.properties.spring.json.use.type.headers=false
+spring.kafka.consumer.properties.spring.json.value.default.type=ar.edu.uade.ecommerce.ventas.EventMessage
+spring.kafka.consumer.properties.spring.json.trusted.packages=*
+```
+
+<ParamField path="spring.json.use.type.headers" type="boolean" default="false">
+  Ignore type headers from Kafka messages, allowing flexible deserialization.
+</ParamField>
+
+<ParamField path="spring.json.value.default.type" type="string" default="ar.edu.uade.ecommerce.ventas.EventMessage">
+  Default Java class for deserializing JSON message values.
+</ParamField>
+
+<ParamField path="spring.json.trusted.packages" type="string" default="*">
+  Trusted packages for deserialization. `*` trusts all packages (use with caution in production).
+</ParamField>
+
+### SASL Configuration for Consumer
+
+```properties
+spring.kafka.consumer.properties.security.protocol=SASL_PLAINTEXT
+spring.kafka.consumer.properties.sasl.mechanism=SCRAM-SHA-512
+spring.kafka.consumer.properties.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_USERNAME}" password="${KAFKA_PASSWORD}";
+```
+
+## Producer Configuration
+
+### SASL Configuration for Producer
+
+The producer uses the same SASL authentication as the consumer:
+
+```properties
+spring.kafka.producer.properties.security.protocol=SASL_PLAINTEXT
+spring.kafka.producer.properties.sasl.mechanism=SCRAM-SHA-512
+spring.kafka.producer.properties.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_USERNAME}" password="${KAFKA_PASSWORD}";
+```
+
+<Info>
+  The application doesn't produce directly to Kafka. Instead, it sends events to the Core API middleware via HTTP, which then publishes to Kafka topics.
+</Info>
+
+## Admin Client Configuration
+
+The admin client is used for topic management and verification at startup:
+
+```properties
+spring.kafka.admin.properties.security.protocol=SASL_PLAINTEXT
+spring.kafka.admin.properties.sasl.mechanism=SCRAM-SHA-512
+spring.kafka.admin.properties.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_USERNAME}" password="${KAFKA_PASSWORD}";
+```
+
+## Topic Configuration
+
+### Ventas Topic (Disabled)
+
+```properties
+ventas.kafka.enabled=true
+ventas.kafka.topic=ventas
+ventas.kafka.concurrency=3
+ventas.kafka.listen-ventas=false
+```
+
+<ParamField path="ventas.kafka.enabled" type="boolean" default="true">
+  Enable or disable the Kafka consumer infrastructure.
+</ParamField>
+
+<ParamField path="ventas.kafka.topic" type="string" default="ventas">
+  Topic name for sales events (currently not consumed by this service).
+</ParamField>
+
+<ParamField path="ventas.kafka.concurrency" type="integer" default="3">
+  Number of concurrent consumer threads for the ventas topic.
+</ParamField>
+
+<ParamField path="ventas.kafka.listen-ventas" type="boolean" default="false">
+  Enable listening to the ventas topic. Set to `false` to prevent consuming own events.
+</ParamField>
+
+### Inventario Topic (Active)
+
+```properties
+inventario.kafka.topic=inventario
+inventario.kafka.concurrency=1
+inventario.kafka.listen-inventario=true
+```
+
+<ParamField path="inventario.kafka.topic" type="string" default="inventario">
+  Topic name for inventory events consumed by this service.
+</ParamField>
+
+<ParamField path="inventario.kafka.concurrency" type="integer" default="1">
+  Number of concurrent consumer threads for the inventario topic.
+</ParamField>
+
+<ParamField path="inventario.kafka.listen-inventario" type="boolean" default="true">
+  Enable listening to inventory events to synchronize stock changes.
+</ParamField>
+
+### Topic Availability
+
+```properties
+spring.kafka.listener.missing-topics-fatal=false
+```
+
+<ParamField path="spring.kafka.listener.missing-topics-fatal" type="boolean" default="false">
+  Prevent application startup failure if configured topics don't exist. Useful in development environments.
+</ParamField>
+
+## Event Message Format
+
+All Kafka messages follow the `EventMessage` schema:
+
+### Message Structure
+
+```json
+{
+  "eventId": "550e8400-e29b-41d4-a716-446655440000",
+  "eventType": "POST: Producto actualizado",
+  "originModule": "inventario",
+  "timestamp": "2024-01-15T10:30:00.123Z",
+  "payload": {
+    "productCode": "PROD-001",
+    "nombre": "Laptop Dell XPS 15",
+    "stock": 25,
+    "precio": 1299.99
+  }
+}
+```
+
+### Field Descriptions
+
+<ParamField path="eventId" type="string" required>
+  Unique identifier for the event (UUID format). Used for idempotency to prevent duplicate processing.
+</ParamField>
+
+<ParamField path="eventType" type="string" required>
+  Describes the type of event. Common values:
+  - `POST: Producto actualizado` - Product updated (inventory)
+  - `POST: Compra pendiente` - Purchase pending
+  - `POST: Compra confirmada` - Purchase confirmed
+  - `DELETE: Compra cancelada` - Purchase cancelled
+  - `POST: Review creada` - Review created
+  - `POST: Producto agregado a favoritos` - Product added to favorites
+</ParamField>
+
+<ParamField path="originModule" type="string" required>
+  Source microservice that generated the event (e.g., `inventario`, `ventas`, `ventas-app`).
+</ParamField>
+
+<ParamField path="timestamp" type="string | number" required>
+  Event timestamp in ISO-8601 format or epoch seconds. The application handles both:
+  - ISO-8601: `"2024-01-15T10:30:00.123Z"`
+  - Epoch: `1705315800.123` or `1705315800`
+</ParamField>
+
+<ParamField path="payload" type="object" required>
+  Event-specific data payload. Structure varies by `eventType`.
+</ParamField>
+
+### Example: Inventory Update Event
+
+```json
+{
+  "eventId": "inv-123-456",
+  "eventType": "POST: Producto actualizado",
+  "originModule": "inventario",
+  "timestamp": 1705315800.123,
+  "payload": {
+    "productCode": "LAPTOP-001",
+    "nombre": "MacBook Pro 16\"",
+    "descripcion": "Apple M3 Max, 36GB RAM, 1TB SSD",
+    "precio": 2999.99,
+    "stock": 15,
+    "categoriaId": 2,
+    "imagenUrl": "https://cdn.example.com/macbook-pro.jpg"
+  }
+}
+```
+
+### Example: Purchase Confirmed Event
+
+```json
+{
+  "eventId": "purchase-789",
+  "eventType": "POST: Compra confirmada",
+  "originModule": "ventas-app",
+  "timestamp": "2024-01-15T14:22:33Z",
+  "payload": {
+    "purchaseId": 1001,
+    "status": "CONFIRMED",
+    "user": {
+      "id": 42,
+      "email": "customer@example.com",
+      "nombre": "John Doe"
+    },
+    "cart": {
+      "items": [
+        {
+          "productCode": "LAPTOP-001",
+          "cantidad": 1,
+          "precio": 2999.99
+        }
+      ],
+      "total": 2999.99
+    }
+  }
+}
+```
+
+## Event Consumer Implementation
+
+### Inventario Events Listener
+
+The `InventarioEventsListener` consumes inventory events:
+
+```java:src/main/java/ar/edu/uade/ecommerce/ventas/InventarioEventsListener.java
+@Component
+@ConditionalOnProperty(
+    prefix = "inventario.kafka", 
+    name = "listen-inventario", 
+    havingValue = "true"
+)
+public class InventarioEventsListener {
+    
+    @KafkaListener(
+        topics = "${inventario.kafka.topic:inventario}",
+        concurrency = "${inventario.kafka.concurrency:1}",
+        groupId = "${inventario.kafka.group-id:inventario-ms}"
+    )
+    public void onMessage(
+        @Payload EventMessage msg,
+        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+        @Header(KafkaHeaders.RECEIVED_PARTITION) Integer partition,
+        @Header(KafkaHeaders.OFFSET) Long offset
+    ) {
+        // Process inventory event with idempotency check
+        // Update local product catalog
+        // Send ACK to middleware
+    }
+}
+```
+
+## Error Handling and Retry
+
+### Retry Configuration
+
+```properties
+ventas.kafka.error.maxAttempts=3
+ventas.kafka.error.backoff.ms=500
+ventas.kafka.dlq.enabled=false
+ventas.kafka.dlq.topicSuffix=.dlq
+```
+
+<ParamField path="ventas.kafka.error.maxAttempts" type="integer" default="3">
+  Maximum number of retry attempts for failed message processing.
+</ParamField>
+
+<ParamField path="ventas.kafka.error.backoff.ms" type="integer" default="500">
+  Backoff period in milliseconds between retry attempts.
+</ParamField>
+
+<ParamField path="ventas.kafka.dlq.enabled" type="boolean" default="false">
+  Enable Dead Letter Queue for messages that fail after all retry attempts.
+</ParamField>
+
+<ParamField path="ventas.kafka.dlq.topicSuffix" type="string" default=".dlq">
+  Suffix appended to topic name for DLQ (e.g., `inventario.dlq`).
+</ParamField>
+
+### Scheduled Retry
+
+```properties
+ventas.retry.enabled=true
+ventas.retry.cron=0 0 */6 * * *
+ventas.retry.maxAttempts=5
+ventas.retry.cooldown.minutes=30
+ventas.retry.batchSize=100
+```
+
+<ParamField path="ventas.retry.enabled" type="boolean" default="true">
+  Enable scheduled retry of failed events from the database.
+</ParamField>
+
+<ParamField path="ventas.retry.cron" type="string" default="0 0 */6 * * *">
+  Cron expression for retry scheduler (default: every 6 hours).
+</ParamField>
+
+<ParamField path="ventas.retry.maxAttempts" type="integer" default="5">
+  Maximum retry attempts for events in ERROR status before giving up.
+</ParamField>
+
+<ParamField path="ventas.retry.cooldown.minutes" type="integer" default="30">
+  Minimum wait time in minutes before retrying a failed event.
+</ParamField>
+
+<ParamField path="ventas.retry.batchSize" type="integer" default="100">
+  Number of failed events to process per retry batch.
+</ParamField>
+
+## Event Acknowledgment
+
+### ACK Configuration
+
+```properties
+communication.intermediary.ack.enabled=true
+communication.intermediary.ack.path=/events/{eventId}/ack
+communication.intermediary.ack.method=POST
+```
+
+<ParamField path="communication.intermediary.ack.enabled" type="boolean" default="true">
+  Enable sending acknowledgments to the Kafka middleware after successful event processing.
+</ParamField>
+
+<ParamField path="communication.intermediary.ack.path" type="string" default="/events/{eventId}/ack">
+  API endpoint path for sending acknowledgments. `{eventId}` is replaced with the actual event ID.
+</ParamField>
+
+<ParamField path="KAFKA_MIDDLEWARE_URL" type="string" default="http://localhost:8090">
+  Base URL of the Kafka communication middleware.
+</ParamField>
+
+### ACK Request
+
+After successfully processing an event, the application sends an acknowledgment:
+
+```http
+POST http://localhost:8090/events/550e8400-e29b-41d4-a716-446655440000/ack
+Authorization: Bearer <keycloak-token>
+Content-Type: application/json
+
+{
+  "module": "ventas",
+  "processedAt": "2024-01-15T10:35:00Z"
+}
+```
+
+## Logging
+
+### Consumer Logging
+
+```properties
+logging.level.ar.edu.uade.ecommerce.ventas=INFO
+logging.level.ar.edu.uade.ecommerce.ventas.VentasInventoryRetryScheduler=INFO
+```
+
+<ParamField path="logging.level.ar.edu.uade.ecommerce.ventas" type="string" default="INFO">
+  Log level for Kafka consumers (TRACE, DEBUG, INFO, WARN, ERROR).
+</ParamField>
+
+### Example Log Output
+
+```log
+2024-01-15 10:30:15.123 INFO  [Inventario->Ventas][Kafka] Recibido eventId=inv-123-456 type='POST: Producto actualizado' origin=inventario ts=1705315800.123 topic=inventario partition=0 offset=1234
+2024-01-15 10:30:15.456 INFO  [Inventario->Ventas][Kafka] Procesado OK eventId=inv-123-456 type=POST: Producto actualizado topic=inventario partition=0 offset=1234 ackSent=true
+```
+
+## Idempotency
+
+The application tracks consumed events in the `consumed_event_log` table to ensure idempotent processing:
+
+```sql
+CREATE TABLE consumed_event_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_id VARCHAR(255) UNIQUE NOT NULL,
+    event_type VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'PENDING',  -- PENDING, PROCESSED, ERROR
+    attempts INT DEFAULT 0,
+    ack_sent BOOLEAN DEFAULT FALSE,
+    payload_json TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_event_id (event_id),
+    INDEX idx_status (status)
+);
+```
+
+Events are processed only once based on `event_id`, preventing duplicate operations.
+
+## Production Recommendations
+
+### Security
+
+1. **Use SSL encryption:**
+   ```properties
+   spring.kafka.properties.security.protocol=SASL_SSL
+   spring.kafka.ssl.trust-store-location=classpath:kafka.client.truststore.jks
+   spring.kafka.ssl.trust-store-password=${KAFKA_TRUSTSTORE_PASSWORD}
+   ```
+
+2. **Rotate SASL credentials regularly**
+
+3. **Use ACLs to restrict topic access:**
+   ```bash
+   kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 \
+     --add --allow-principal User:ventas-app \
+     --operation Read --topic inventario \
+     --group ventas-ms
+   ```
+
+### Performance
+
+1. **Tune consumer concurrency** based on partition count and load
+2. **Monitor consumer lag:**
+   ```bash
+   kafka-consumer-groups --bootstrap-server localhost:9092 \
+     --group ventas-ms --describe
+   ```
+3. **Adjust batch sizes** for bulk processing scenarios
+
+### Reliability
+
+1. **Enable DLQ for production:**
+   ```properties
+   ventas.kafka.dlq.enabled=true
+   ```
+
+2. **Set up Kafka cluster with replication factor ≥ 3**
+
+3. **Monitor event processing metrics** (processed, errors, duplicates)
+
+## Troubleshooting
+
+### Authentication Failed
+
+```log
+Authentication failed during authentication due to invalid credentials
+```
+
+**Solution:** Verify `KAFKA_USERNAME` and `KAFKA_PASSWORD` match broker configuration.
+
+### Consumer Not Receiving Messages
+
+**Check:**
+1. Consumer group has committed offsets: `kafka-consumer-groups --describe`
+2. Topic has messages: `kafka-console-consumer --bootstrap-server localhost:9092 --topic inventario --from-beginning`
+3. `inventario.kafka.listen-inventario=true`
+
+### Deserialization Errors
+
+```log
+Could not read JSON: Unrecognized field
+```
+
+**Solution:** Ensure `spring.json.trusted.packages=*` and message format matches `EventMessage` schema.
+
+### High Consumer Lag
+
+**Solutions:**
+- Increase `inventario.kafka.concurrency`
+- Optimize event processing logic
+- Scale horizontally with more consumer instances
+
+## Related Documentation
+
+- [Environment Variables](/configuration/environment) - Kafka credentials and URLs
+- [API Reference](/api/events/receive-events) - Publishing events through Core API
+- [Architecture Overview](/concepts/architecture) - Event-driven system design

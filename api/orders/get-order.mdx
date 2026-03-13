@@ -1,0 +1,153 @@
+---
+title: "Get Order"
+api: "GET /api/purchase/{id}"
+description: "Retrieve a specific purchase order by ID"
+---
+
+Retrieves detailed information about a specific purchase order, including the associated cart and product details.
+
+## Authentication
+
+Requires Bearer token authentication via the `Authorization` header.
+
+## Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the purchase order to retrieve
+</ParamField>
+
+## Response
+
+Returns a `PurchaseWithCartDTO` object containing the purchase details and expanded cart information.
+
+<ResponseField name="id" type="integer">
+  The unique identifier for the purchase
+</ResponseField>
+
+<ResponseField name="date" type="string">
+  ISO 8601 timestamp when the purchase was created
+</ResponseField>
+
+<ResponseField name="reservationTime" type="string">
+  ISO 8601 timestamp for the reservation expiration
+</ResponseField>
+
+<ResponseField name="direction" type="string">
+  Shipping address for the order
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Purchase status. Possible values: `PENDING`, `CONFIRMED`, `CANCELLED`
+</ResponseField>
+
+<ResponseField name="cart" type="object">
+  Detailed cart information
+  
+  <ResponseField name="cart.id" type="integer">
+    Cart ID
+  </ResponseField>
+  
+  <ResponseField name="cart.finalPrice" type="float">
+    Total price of all items in the cart
+  </ResponseField>
+  
+  <ResponseField name="cart.items" type="array">
+    List of cart items with full product details
+    
+    <ResponseField name="cart.items[].id" type="integer">
+      Cart item ID
+    </ResponseField>
+    
+    <ResponseField name="cart.items[].quantity" type="integer">
+      Quantity of the product ordered
+    </ResponseField>
+    
+    <ResponseField name="cart.items[].product" type="object">
+      Complete product information
+      
+      <ResponseField name="cart.items[].product.id" type="integer">
+        Product ID
+      </ResponseField>
+      
+      <ResponseField name="cart.items[].product.title" type="string">
+        Product name/title
+      </ResponseField>
+      
+      <ResponseField name="cart.items[].product.description" type="string">
+        Product description
+      </ResponseField>
+      
+      <ResponseField name="cart.items[].product.price" type="float">
+        Unit price of the product
+      </ResponseField>
+      
+      <ResponseField name="cart.items[].product.stock" type="integer">
+        Available stock quantity
+      </ResponseField>
+      
+      <ResponseField name="cart.items[].product.mediaSrc" type="array">
+        Array of media URLs (images) for the product
+      </ResponseField>
+      
+      <ResponseField name="cart.items[].product.productCode" type="integer">
+        Unique product code
+      </ResponseField>
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl https://api.example.com/api/purchase/456 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Example Response
+
+```json
+{
+  "id": 456,
+  "date": "2026-03-13T10:30:00",
+  "reservationTime": "2026-03-13T14:30:00",
+  "direction": "123 Main St, City, Country",
+  "status": "PENDING",
+  "cart": {
+    "id": 123,
+    "finalPrice": 299.99,
+    "items": [
+      {
+        "id": 1,
+        "quantity": 2,
+        "product": {
+          "id": 10,
+          "title": "Wireless Headphones",
+          "description": "High-quality wireless headphones with noise cancellation",
+          "price": 149.99,
+          "stock": 50,
+          "mediaSrc": [
+            "https://example.com/images/headphones-1.jpg",
+            "https://example.com/images/headphones-2.jpg"
+          ],
+          "productCode": 1001
+        }
+      }
+    ]
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="200 OK with null body" type="success">
+  Returned when the purchase with the specified ID does not exist
+</ResponseField>
+
+<ResponseField name="401 Unauthorized" type="error">
+  Returned when the authorization token is invalid or the user session is not active
+</ResponseField>
+
+## Notes
+
+- If the purchase does not exist, the endpoint returns a `200 OK` status with a `null` body rather than a `404 Not Found`
+- The response includes complete product details for each item in the cart, making it suitable for displaying order confirmations or invoices

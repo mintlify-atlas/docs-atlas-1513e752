@@ -1,0 +1,106 @@
+---
+title: 'Receive Events'
+api: 'POST /api/ecommerce/listener/events'
+description: 'Webhook endpoint for receiving events from the Core/Communication API'
+---
+
+This endpoint receives event notifications from the Core/Communication API for synchronizing catalog data (brands, categories, products) and stock updates across microservices.
+
+## Request
+
+```bash
+curl --request POST \
+  --url https://api.example.com/api/ecommerce/listener/events \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer OPTIONAL_TOKEN' \
+  --data '{
+    "type": "UpdateStock",
+    "payload": {
+      "productId": 123,
+      "stock": 50
+    },
+    "timestamp": "2026-03-13T10:30:00Z",
+    "originModule": "Core"
+  }'
+```
+
+<ParamField header="Authorization" type="string">
+  Optional Bearer token for authentication
+</ParamField>
+
+<ParamField body="type" type="string" required>
+  Type of event being sent. Supported values:
+  - `UpdateStock` / `PATCH: Actualizar stock` - Stock update events
+  - `AddProduct` / `POST: Agregar producto` - New product creation
+  - `EditProductFull` - Full product update
+  - `EditProductSimple` - Partial product update
+  - `DeleteProduct` - Product deletion
+  - `ActivateProduct` - Product activation
+  - `DeactivateProduct` - Product deactivation
+  - `BrandSync` - Brand synchronization
+  - `CategorySync` - Category synchronization
+  - `POST: Categoria agregada` - Category added event
+  - `DELETE: Categoria eliminada` - Category deleted event
+</ParamField>
+
+<ParamField body="payload" type="object" required>
+  Event-specific data payload containing the relevant information for processing
+</ParamField>
+
+<ParamField body="timestamp" type="string" required>
+  ISO-8601 formatted timestamp of when the event occurred
+</ParamField>
+
+<ParamField body="originModule" type="string" required>
+  Name of the module that originated the event (e.g., "Core", "Communication")
+</ParamField>
+
+## Response
+
+### Success Response
+
+```
+HTTP/1.1 200 OK
+```
+
+The endpoint returns a 200 OK status with no body when the event is successfully received and queued for processing.
+
+## Event Types
+
+### Stock Update Events
+
+Events with type `UpdateStock` or `PATCH: Actualizar stock` update product inventory levels.
+
+### Product Events
+
+Product-related events handle the lifecycle of products:
+- Adding new products to the catalog
+- Updating existing product information
+- Deleting products
+- Activating/deactivating products
+
+### Catalog Events
+
+Catalog synchronization events for brands and categories:
+- `BrandSync` - Synchronize brand information
+- `CategorySync` - Synchronize category information
+- Category addition and deletion events
+
+## Implementation Details
+
+This endpoint uses an event-driven architecture to receive notifications from the Core/Communication API. Events are logged and dispatched to appropriate handler methods based on the event type:
+
+- `handleStockUpdate()` - Processes stock updates
+- `handleProductEvent()` - Processes product lifecycle events
+- `handleCatalogEvent()` - Processes brand and category synchronization
+
+The endpoint is non-blocking and returns immediately after receiving the event. Actual processing happens asynchronously. Invalid or null events are logged but do not cause errors.
+
+Source: `ECommerceEventController.java:13-50`
+
+## Notes
+
+- This endpoint is designed for server-to-server communication
+- Events are processed asynchronously after acknowledgment
+- Unrecognized event types are logged but not rejected
+- The payload structure varies based on the event type

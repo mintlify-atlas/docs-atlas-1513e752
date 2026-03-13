@@ -1,0 +1,163 @@
+---
+title: 'Manage Addresses'
+description: 'Get, add, and delete user addresses'
+---
+
+Manage addresses associated with the authenticated user account.
+
+## Get User Addresses
+
+<api>GET /address/user</api>
+
+Retrieve all addresses for the authenticated user.
+
+### Request
+
+```bash
+curl --request GET \
+  --url https://api.example.com/address/user \
+  --header 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for user authentication
+</ParamField>
+
+### Response
+
+<ResponseField name="addresses" type="array">
+  Array of address objects
+
+  <ResponseField name="id" type="integer">
+    Unique identifier for the address
+  </ResponseField>
+
+  <ResponseField name="description" type="string">
+    Full address description
+  </ResponseField>
+</ResponseField>
+
+#### Success Response
+
+```json
+[
+  {
+    "id": 1,
+    "description": "123 Main St, New York, NY 10001"
+  },
+  {
+    "id": 2,
+    "description": "456 Park Ave, New York, NY 10022"
+  }
+]
+```
+
+---
+
+## Add Address
+
+<api>POST /address</api>
+
+Add a new address to the authenticated user's account.
+
+### Request
+
+```bash
+curl --request POST \
+  --url https://api.example.com/address \
+  --header 'Authorization: Bearer YOUR_TOKEN_HERE' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "description": "789 Broadway, New York, NY 10003"
+  }'
+```
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for user authentication
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Full address description
+</ParamField>
+
+### Response
+
+Returns the created address object.
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the newly created address
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Address description
+</ResponseField>
+
+#### Success Response
+
+```json
+{
+  "id": 3,
+  "description": "789 Broadway, New York, NY 10003"
+}
+```
+
+#### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Invalid or missing authentication token
+</ResponseField>
+
+```json
+null
+```
+
+---
+
+## Delete Address
+
+<api>DELETE /address/:id</api>
+
+Delete a specific address from the authenticated user's account.
+
+### Request
+
+```bash
+curl --request DELETE \
+  --url https://api.example.com/address/1 \
+  --header 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+<ParamField path="id" type="integer" required>
+  ID of the address to delete
+</ParamField>
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for user authentication
+</ParamField>
+
+### Response
+
+#### Success Response
+
+```json
+"Dirección eliminada con éxito"
+```
+
+#### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Invalid or missing authentication token
+</ResponseField>
+
+```json
+"Usuario no logueado"
+```
+
+## Implementation Details
+
+All address management endpoints require authentication via Bearer token. The user's email is extracted from the JWT token to associate addresses with the correct user account. Addresses are automatically linked to the authenticated user and cannot be accessed by other users.
+
+Sources:
+- GET: `AddressController.java:20-30`
+- POST: `AddressController.java:32-43`
+- DELETE: `AddressController.java:45-55`

@@ -1,0 +1,225 @@
+---
+title: 'Health Check'
+description: 'Monitor consumer health and event processing status'
+---
+
+Health check endpoints for monitoring the status of event consumers and Kafka message processing.
+
+## Consumer Monitor Health
+
+<api>GET /health/consumidores</api>
+
+Returns real-time metrics about the event consumer monitor, including event counts by type, errors, duplicates, and configuration.
+
+### Request
+
+```bash
+curl --request GET \
+  --url https://api.example.com/health/consumidores
+```
+
+### Response
+
+<ResponseField name="handledByType" type="object">
+  Count of successfully handled events grouped by event type
+</ResponseField>
+
+<ResponseField name="errorsByType" type="object">
+  Count of errors encountered grouped by event type
+</ResponseField>
+
+<ResponseField name="duplicates" type="integer">
+  Total number of duplicate events detected
+</ResponseField>
+
+<ResponseField name="lastEventIds" type="array">
+  List of the most recent event IDs processed
+</ResponseField>
+
+<ResponseField name="uptimeMs" type="long">
+  Uptime of the consumer service in milliseconds
+</ResponseField>
+
+<ResponseField name="config" type="object">
+  Kafka consumer configuration
+
+  <ResponseField name="bootstrapServers" type="string">
+    Kafka bootstrap server addresses
+  </ResponseField>
+
+  <ResponseField name="groupId" type="string">
+    Kafka consumer group ID
+  </ResponseField>
+
+  <ResponseField name="topic" type="string">
+    Kafka topic being consumed
+  </ResponseField>
+
+  <ResponseField name="concurrency" type="string">
+    Number of concurrent consumer threads
+  </ResponseField>
+
+  <ResponseField name="dlqEnabled" type="string">
+    Whether Dead Letter Queue is enabled
+  </ResponseField>
+
+  <ResponseField name="dlqTopicSuffix" type="string">
+    Suffix for DLQ topic name
+  </ResponseField>
+
+  <ResponseField name="errorMaxAttempts" type="string">
+    Maximum retry attempts for failed messages
+  </ResponseField>
+
+  <ResponseField name="errorBackoffMs" type="string">
+    Backoff time in milliseconds between retries
+  </ResponseField>
+</ResponseField>
+
+#### Success Response
+
+```json
+{
+  "handledByType": {
+    "UpdateStock": 245,
+    "AddProduct": 89,
+    "CategorySync": 12
+  },
+  "errorsByType": {
+    "UpdateStock": 3,
+    "AddProduct": 1
+  },
+  "duplicates": 5,
+  "lastEventIds": [
+    "evt_123456",
+    "evt_123455",
+    "evt_123454"
+  ],
+  "uptimeMs": 3600000,
+  "config": {
+    "bootstrapServers": "localhost:9092",
+    "groupId": "ecommerce-consumer-group",
+    "topic": "ecommerce-events",
+    "concurrency": "3",
+    "dlqEnabled": "true",
+    "dlqTopicSuffix": ".dlq",
+    "errorMaxAttempts": "3",
+    "errorBackoffMs": "500"
+  }
+}
+```
+
+---
+
+## Inventory Consumer Health
+
+<api>GET /health/consumidores/inventario</api>
+
+Returns detailed information about consumed events stored in the event log, including processing status and recent events.
+
+### Request
+
+```bash
+curl --request GET \
+  --url 'https://api.example.com/health/consumidores/inventario?limit=20'
+```
+
+<ParamField query="limit" type="integer" default="10">
+  Number of recent events to return (min: 1, max: 100)
+</ParamField>
+
+### Response
+
+<ResponseField name="processed" type="long">
+  Total number of successfully processed events
+</ResponseField>
+
+<ResponseField name="pending" type="long">
+  Number of events pending processing
+</ResponseField>
+
+<ResponseField name="error" type="long">
+  Number of events that failed processing
+</ResponseField>
+
+<ResponseField name="last" type="array">
+  Array of the most recent events
+
+  <ResponseField name="eventId" type="string">
+    Unique event identifier
+  </ResponseField>
+
+  <ResponseField name="eventType" type="string">
+    Type of the event
+  </ResponseField>
+
+  <ResponseField name="status" type="string">
+    Processing status: PROCESSED, PENDING, or ERROR
+  </ResponseField>
+
+  <ResponseField name="attempts" type="integer">
+    Number of processing attempts
+  </ResponseField>
+
+  <ResponseField name="updatedAt" type="string">
+    Last update timestamp
+  </ResponseField>
+
+  <ResponseField name="topic" type="string">
+    Kafka topic name
+  </ResponseField>
+
+  <ResponseField name="partition" type="integer">
+    Kafka partition ID
+  </ResponseField>
+
+  <ResponseField name="offset" type="long">
+    Kafka offset value
+  </ResponseField>
+</ResponseField>
+
+#### Success Response
+
+```json
+{
+  "processed": 1523,
+  "pending": 12,
+  "error": 8,
+  "last": [
+    {
+      "eventId": "evt_789012",
+      "eventType": "UpdateStock",
+      "status": "PROCESSED",
+      "attempts": 1,
+      "updatedAt": "2026-03-13T14:30:00Z",
+      "topic": "ecommerce-events",
+      "partition": 0,
+      "offset": 1523
+    },
+    {
+      "eventId": "evt_789011",
+      "eventType": "AddProduct",
+      "status": "PROCESSED",
+      "attempts": 1,
+      "updatedAt": "2026-03-13T14:29:45Z",
+      "topic": "ecommerce-events",
+      "partition": 1,
+      "offset": 892
+    }
+  ]
+}
+```
+
+## Implementation Details
+
+These health check endpoints provide observability into the event-driven architecture:
+
+- **Consumer Monitor Health** (`/health/consumidores`) provides real-time metrics from the in-memory consumer monitor service, including uptime, event counts, and Kafka configuration.
+
+- **Inventory Consumer Health** (`/health/consumidores/inventario`) queries the persistent event log database to retrieve processing statistics and recent event history.
+
+Both endpoints are useful for monitoring system health, debugging issues, and tracking event processing performance.
+
+Sources:
+- Consumer Monitor: `VentasHealthController.java:23-45`
+- Inventory Consumer: `VentasConsumersHealthController.java:26-45`

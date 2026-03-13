@@ -1,0 +1,212 @@
+---
+title: 'Environment Variables'
+description: 'Complete reference for all environment variables used in the Ecommerce Backend API'
+---
+
+## Overview
+
+The Ecommerce Backend API uses environment variables for configuration across different environments (development, staging, production). All variables are defined in `application.properties` and should be set via environment variables or a `.env` file.
+
+## Core Application Settings
+
+<ParamField path="SERVER_PORT" type="integer" default="8081">
+  Port number on which the application server runs. The API will be accessible at `http://localhost:{SERVER_PORT}/api`.
+</ParamField>
+
+<ParamField path="SPRING_PROFILES_ACTIVE" type="string" default="dev">
+  Active Spring profile for environment-specific configuration (e.g., `dev`, `staging`, `prod`).
+</ParamField>
+
+## Database Configuration
+
+<ParamField path="SPRING_DATASOURCE_URL" type="string" required>
+  MySQL database connection URL without the `jdbc:mysql://` prefix. 
+  
+  **Example:** `mydb.us-east-1.rds.amazonaws.com:3306/ecommerce`
+</ParamField>
+
+<ParamField path="SPRING_DATASOURCE_USERNAME" type="string" required>
+  MySQL database username for authentication.
+</ParamField>
+
+<ParamField path="SPRING_DATASOURCE_PASSWORD" type="string" required>
+  MySQL database password for authentication.
+</ParamField>
+
+## JWT Authentication
+
+<ParamField path="JWT_SECRET" type="string" required>
+  Secret key used for signing and verifying JWT tokens. Must be a strong, random string in production.
+  
+  **Important:** Keep this value secret and never commit it to version control.
+</ParamField>
+
+## Email Configuration (SMTP)
+
+<ParamField path="SPRING_MAIL_USERNAME" type="string" required>
+  Gmail account username for sending emails via SMTP.
+</ParamField>
+
+<ParamField path="SPRING_MAIL_PASSWORD" type="string" required>
+  Gmail account password or app-specific password for SMTP authentication.
+  
+  **Note:** Use an app-specific password when 2FA is enabled on the Gmail account.
+</ParamField>
+
+## Kafka Configuration
+
+<ParamField path="KAFKA_BOOTSTRAP" type="string" default="localhost:9092">
+  Kafka broker bootstrap server address(es). For multiple brokers, use comma-separated values.
+  
+  **Example:** `broker1:9092,broker2:9092,broker3:9092`
+</ParamField>
+
+<ParamField path="KAFKA_USERNAME" type="string" required>
+  Username for Kafka SASL/SCRAM-SHA-512 authentication.
+</ParamField>
+
+<ParamField path="KAFKA_PASSWORD" type="string" required>
+  Password for Kafka SASL/SCRAM-SHA-512 authentication.
+</ParamField>
+
+<ParamField path="KAFKA_MIDDLEWARE_URL" type="string" default="http://localhost:8090">
+  URL of the Kafka communication intermediary service that routes and publishes events.
+</ParamField>
+
+## Keycloak Configuration
+
+<ParamField path="KEYCLOAK_TOKEN_URL" type="string" default="http://localhost:8080/realms/ecommerce/protocol/openid-connect/token">
+  Keycloak token endpoint URL for OAuth2 client credentials flow.
+</ParamField>
+
+<ParamField path="KEYCLOAK_CLIENT_SECRET" type="string" required>
+  Client secret for the `ventas-app` Keycloak client used for backend authentication.
+</ParamField>
+
+## Core API Configuration
+
+<ParamField path="CORE_API_URL" type="string" default="http://localhost:8086">
+  Base URL of the Core API service that handles event routing and publishing to Kafka.
+  
+  In development, this points to a local mock service.
+</ParamField>
+
+## Example .env File
+
+Create a `.env` file in your project root with the following structure:
+
+```bash
+# Server Configuration
+SERVER_PORT=8081
+SPRING_PROFILES_ACTIVE=dev
+
+# Database Configuration (MySQL)
+SPRING_DATASOURCE_URL=localhost:3306/ecommerce
+SPRING_DATASOURCE_USERNAME=ecommerce_user
+SPRING_DATASOURCE_PASSWORD=your_db_password_here
+
+# JWT Secret
+JWT_SECRET=your_jwt_secret_key_minimum_256_bits
+
+# Email Configuration (Gmail SMTP)
+SPRING_MAIL_USERNAME=your-email@gmail.com
+SPRING_MAIL_PASSWORD=your_app_password_here
+
+# Kafka Configuration
+KAFKA_BOOTSTRAP=localhost:9092
+KAFKA_USERNAME=kafka_user
+KAFKA_PASSWORD=kafka_password
+KAFKA_MIDDLEWARE_URL=http://localhost:8090
+
+# Keycloak Configuration
+KEYCLOAK_TOKEN_URL=http://localhost:8080/realms/ecommerce/protocol/openid-connect/token
+KEYCLOAK_CLIENT_SECRET=your_keycloak_client_secret
+
+# Core API
+CORE_API_URL=http://localhost:8086
+```
+
+## Configuration by Environment
+
+### Development
+
+For local development, use default values with local services:
+
+```bash
+SERVER_PORT=8081
+SPRING_DATASOURCE_URL=localhost:3306/ecommerce
+KAFKA_BOOTSTRAP=localhost:9092
+KEYCLOAK_TOKEN_URL=http://localhost:8080/realms/ecommerce/protocol/openid-connect/token
+CORE_API_URL=http://localhost:8086
+KAFKA_MIDDLEWARE_URL=http://localhost:8090
+```
+
+### Production
+
+For production, use fully qualified domain names and secure credentials:
+
+```bash
+SERVER_PORT=8081
+SPRING_DATASOURCE_URL=prod-db.us-east-1.rds.amazonaws.com:3306/ecommerce
+KAFKA_BOOTSTRAP=kafka-1.prod.internal:9092,kafka-2.prod.internal:9092,kafka-3.prod.internal:9092
+KEYCLOAK_TOKEN_URL=https://auth.yourdomain.com/realms/ecommerce/protocol/openid-connect/token
+CORE_API_URL=https://core-api.yourdomain.com
+KAFKA_MIDDLEWARE_URL=https://middleware.yourdomain.com
+```
+
+## Security Best Practices
+
+<Warning>
+  **Never commit sensitive credentials to version control.** Use environment variables or secret management services (AWS Secrets Manager, HashiCorp Vault, etc.).
+</Warning>
+
+1. **Rotate secrets regularly** - Change passwords, tokens, and secrets on a regular schedule
+2. **Use strong secrets** - Generate random, cryptographically secure values for `JWT_SECRET`
+3. **Limit access** - Use separate credentials for development, staging, and production
+4. **Enable app passwords** - For Gmail SMTP, use app-specific passwords instead of your main password
+5. **Environment isolation** - Keep production credentials completely separate from development
+
+## Validation
+
+To verify your configuration, check the application logs on startup:
+
+```bash
+java -jar ecommerce-backend.jar
+```
+
+Look for successful connection messages:
+- Database connection established
+- Kafka consumer groups joined
+- Keycloak token endpoint accessible
+
+## Troubleshooting
+
+### Database Connection Failed
+
+```bash
+Communications link failure
+```
+
+**Solution:** Verify `SPRING_DATASOURCE_URL` format and ensure MySQL is accessible.
+
+### Kafka Authentication Failed
+
+```bash
+Authentication failed during authentication due to invalid credentials
+```
+
+**Solution:** Check `KAFKA_USERNAME` and `KAFKA_PASSWORD` match your broker configuration.
+
+### JWT Token Invalid
+
+```bash
+SignatureException: JWT signature does not match
+```
+
+**Solution:** Ensure `JWT_SECRET` is consistent across all instances and hasn't changed.
+
+## Related Documentation
+
+- [Database Configuration](/configuration/database) - Detailed MySQL and JPA settings
+- [Kafka Configuration](/configuration/kafka) - Event streaming and message broker setup
+- [API Reference](/api/auth/login) - API endpoints and authentication

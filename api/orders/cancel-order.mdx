@@ -1,0 +1,76 @@
+---
+title: "Cancel Order"
+api: "DELETE /api/purchase/{id}"
+description: "Cancel a purchase order and revert product stock"
+---
+
+Cancels a purchase order and reverts the reserved product stock back to inventory. This endpoint is used both for manual cancellations and automatic cancellations when the reservation time expires (after 4 hours).
+
+## Authentication
+
+Requires Bearer token authentication via the `Authorization` header.
+
+## Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the purchase order to cancel
+</ParamField>
+
+## Behavior
+
+When a purchase is cancelled:
+
+1. The product stock is reverted for all items in the associated cart
+2. The purchase record is deleted from the database
+3. A confirmation message is returned
+
+<Warning>
+  This action is destructive and cannot be undone. The purchase will be permanently deleted from the system.
+</Warning>
+
+## Response
+
+Returns a success message upon successful cancellation.
+
+<ResponseField name="message" type="string">
+  Confirmation message indicating the purchase was successfully cancelled, including the purchase ID
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X DELETE https://api.example.com/api/purchase/456 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Example Response
+
+```json
+"Compra eliminada correctamente. ID: 456"
+```
+
+## Error Responses
+
+<ResponseField name="401 Unauthorized" type="error">
+  Returned when the authorization token is invalid or the user session is not active
+</ResponseField>
+
+## Use Cases
+
+### Manual Cancellation
+Users can manually cancel their pending orders before the reservation time expires.
+
+### Automatic Cancellation
+The system automatically cancels orders when the reservation time (4 hours from creation) expires, freeing up the reserved inventory.
+
+## Stock Reversion
+
+When a purchase is cancelled, the system:
+- Identifies all products in the associated cart
+- Returns the reserved quantities back to available stock
+- Ensures inventory accuracy is maintained
+
+## Related Endpoints
+
+- [Create Order](/api/orders/create-order) - Create a new purchase order
+- [Get Order](/api/orders/get-order) - Retrieve order details before cancelling

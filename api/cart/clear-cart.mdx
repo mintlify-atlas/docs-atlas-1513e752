@@ -1,0 +1,108 @@
+---
+title: "Clear Cart"
+api: "DELETE /cart/{id}"
+description: "Delete a shopping cart and all its items"
+---
+
+## Authentication
+
+This endpoint requires a valid JWT token in the Authorization header.
+
+## Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the cart to delete
+</ParamField>
+
+## Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+  
+  Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+</ParamField>
+
+## Response
+
+Successful deletion returns a 200 status with no content.
+
+## Important Notes
+
+<Warning>
+  **Stock is NOT automatically restored** when deleting a cart.
+  
+  When a cart is created, product stock is reduced. Deleting the cart does not reverse this operation. Stock management for cancelled or deleted carts must be handled separately through the purchase management workflow.
+</Warning>
+
+<Info>
+  This endpoint performs a cascade delete, removing all cart items associated with the cart.
+</Info>
+
+## Error Responses
+
+- **401 Unauthorized**: User session is not active or token is invalid
+- **404 Not Found**: Cart with the specified ID does not exist
+
+## Use Cases
+
+- User wants to start over with an empty cart
+- Cleaning up abandoned carts
+- Cancelling a pending purchase (should be used with purchase cancellation logic)
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE "https://api.example.com/cart/123" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/cart/123', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+
+if (response.ok) {
+  console.log('Cart deleted successfully');
+}
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+}
+
+response = requests.delete('https://api.example.com/cart/123', 
+                          headers=headers)
+
+if response.status_code == 200:
+    print('Cart deleted successfully')
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 Success
+{}
+```
+
+```json 401 Unauthorized
+{
+  "status": 401,
+  "error": "Unauthorized"
+}
+```
+
+```json 404 Not Found
+{
+  "status": 404,
+  "error": "Not Found"
+}
+```
+
+</ResponseExample>

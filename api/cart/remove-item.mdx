@@ -1,0 +1,74 @@
+---
+title: "Remove Cart Item"
+api: "DELETE /cart/items/{id}"
+description: "Remove a specific item from the shopping cart"
+---
+
+<Warning>
+  **This endpoint is not currently implemented in the API.**
+  
+  The current implementation uses a full cart replacement model. To remove items from a cart, you need to create a new cart without the unwanted items using the [Create Cart](/api/cart/add-item) endpoint.
+</Warning>
+
+## Alternative Approach
+
+To remove items from a cart with the current API:
+
+1. [Get the current cart](/api/cart/get-cart) to retrieve all items
+2. Filter out the item you want to remove in your application
+3. [Create a new cart](/api/cart/add-item) with the remaining items
+4. Optionally [delete the old cart](/api/cart/clear-cart)
+
+## Planned Implementation
+
+When implemented, this endpoint would:
+
+### Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the cart item to remove
+</ParamField>
+
+### Headers
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+</ParamField>
+
+### Expected Response
+
+Successful deletion returns a 200 or 204 status with no content.
+
+### Error Responses
+
+- **401 Unauthorized**: User session is not active or token is invalid
+- **404 Not Found**: Cart item with the specified ID does not exist
+
+<RequestExample>
+
+```bash cURL (Not Implemented)
+curl -X DELETE "https://api.example.com/cart/items/1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```javascript JavaScript (Not Implemented)
+const response = await fetch('https://api.example.com/cart/items/1', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+  }
+});
+```
+
+```python Python (Not Implemented)
+import requests
+
+headers = {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+}
+
+response = requests.delete('https://api.example.com/cart/items/1', 
+                          headers=headers)
+```
+
+</RequestExample>

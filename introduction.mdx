@@ -1,0 +1,122 @@
+---
+title: "Introduction"
+description: "Spring Boot e-commerce backend with REST APIs for product catalog, shopping cart, orders, and event-driven integrations"
+---
+
+# Ecommerce Backend API
+
+A comprehensive Spring Boot e-commerce backend service providing REST APIs for managing products, shopping carts, orders, user authentication, and event-driven integrations via Kafka.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="REST API" icon="plug" href="/api/auth/login">
+    Complete RESTful API for all e-commerce operations
+  </Card>
+  <Card title="Authentication" icon="lock" href="/concepts/authentication">
+    JWT-based auth with email verification and Keycloak support
+  </Card>
+  <Card title="Product Catalog" icon="box" href="/api/products/list-products">
+    Product management with filtering, search, and reviews
+  </Card>
+  <Card title="Event-Driven" icon="bolt" href="/concepts/event-driven">
+    Kafka integration for real-time event synchronization
+  </Card>
+</CardGroup>
+
+## Architecture Overview
+
+The Ecommerce Backend API is built with Spring Boot 3.5.4 and Java 17, leveraging:
+
+- **Spring Data JPA** with MySQL for data persistence
+- **Spring Security** for authentication and authorization
+- **Spring Kafka** for event-driven messaging
+- **JWT tokens** for stateless authentication
+- **Keycloak** for OAuth2 integration
+- **Docker** for containerization
+
+<Note>
+  The API follows a microservices architecture with dedicated modules for Sales (Ventas) and Inventory (Inventario) synchronization.
+</Note>
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get up and running in 5 minutes
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/concepts/architecture">
+    Learn about the system design
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/login">
+    Explore all available endpoints
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration/environment">
+    Configure your deployment
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+- **Framework**: Spring Boot 3.5.4
+- **Language**: Java 17
+- **Database**: MySQL with JPA/Hibernate
+- **Messaging**: Apache Kafka with SASL authentication
+- **Security**: JWT, Keycloak OAuth2
+- **Build Tool**: Maven 3.9+
+- **Containerization**: Docker
+
+## Core Capabilities
+
+### User Management
+- Registration with email verification
+- JWT-based authentication
+- Session management
+- Password reset functionality
+- Address management
+
+### Product Catalog
+- Product CRUD operations
+- Category and brand management
+- Product filtering and search
+- Product reviews and ratings
+- Favorite products
+
+### Shopping Cart
+- Add/remove cart items
+- Update item quantities
+- Cart persistence per user
+- Cart checkout
+
+### Order Management
+- Create orders from cart
+- Order history
+- Order cancellation
+- Purchase tracking
+
+### Event Integration
+- Kafka event consumers for inventory updates
+- Event idempotency handling
+- Retry mechanisms with exponential backoff
+- Multi-module event synchronization
+
+<Info>
+  All endpoints are prefixed with `/api` and require authentication unless explicitly marked as public.
+</Info>
+
+## Next Steps
+
+<Steps>
+  <Step title="Get Started">
+    Follow the [Quickstart](/quickstart) guide to run the application locally
+  </Step>
+  <Step title="Understand the Architecture">
+    Read about the [Architecture](/concepts/architecture) and design patterns
+  </Step>
+  <Step title="Configure Your Environment">
+    Set up [environment variables](/configuration/environment) for your deployment
+  </Step>
+  <Step title="Explore the API">
+    Browse the [API Reference](/api/auth/login) to see all available endpoints
+  </Step>
+</Steps>

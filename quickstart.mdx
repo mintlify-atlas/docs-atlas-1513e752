@@ -1,80 +1,402 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Get your Ecommerce Backend API up and running in minutes'
 ---
 
-## Get started in three steps
+Get your Ecommerce Backend API up and running in minutes. This guide will walk you through setting up the application, configuring dependencies, and making your first API calls.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+Before you begin, ensure you have the following installed:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Java 17+" icon="java">
+    Required for running the Spring Boot application
+  </Card>
+  <Card title="Maven 3.9+" icon="box">
+    For building and managing dependencies
+  </Card>
+  <Card title="MySQL 8.0+" icon="database">
+    Database for storing application data
+  </Card>
+  <Card title="Docker & Docker Compose" icon="docker">
+    For running Keycloak and Kafka (optional but recommended)
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+This is a Spring Boot 3.5.4 application that uses Spring Security with JWT authentication, Spring Data JPA, and integrates with Keycloak for OAuth2 and Kafka for event-driven messaging.
 </Note>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the repository to your local machine:
+
+    ```bash
+    git clone <your-repository-url>
+    cd ecommerce-backend
+    ```
+  </Step>
+
+  <Step title="Set up MySQL database">
+    Create a new MySQL database for the application:
+
+    ```sql
+    CREATE DATABASE ecommerce_db;
+    CREATE USER 'ecommerce_user'@'localhost' IDENTIFIED BY 'your_password';
+    GRANT ALL PRIVILEGES ON ecommerce_db.* TO 'ecommerce_user'@'localhost';
+    FLUSH PRIVILEGES;
+    ```
+
+    <Tip>
+    The application uses `spring.jpa.hibernate.ddl-auto=update`, so tables will be created automatically on first run.
+    </Tip>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in the project root or set the following environment variables. These are required by `application.properties`:
+
+    ```bash
+    # Server Configuration
+    export SERVER_PORT=8081
+
+    # MySQL Database
+    export SPRING_DATASOURCE_URL=localhost:3306/ecommerce_db
+    export SPRING_DATASOURCE_USERNAME=ecommerce_user
+    export SPRING_DATASOURCE_PASSWORD=your_password
+
+    # JWT Secret (generate a secure random string)
+    export JWT_SECRET=your-secret-key-min-256-bits-for-hs256-algorithm
+
+    # Email Configuration (Gmail SMTP)
+    export SPRING_MAIL_USERNAME=your-email@gmail.com
+    export SPRING_MAIL_PASSWORD=your-app-password
+
+    # Keycloak Configuration
+    export KEYCLOAK_TOKEN_URL=http://localhost:8080/realms/ecommerce/protocol/openid-connect/token
+    export KEYCLOAK_CLIENT_SECRET=your-keycloak-client-secret
+
+    # Kafka Configuration
+    export KAFKA_BOOTSTRAP=localhost:9092
+    export KAFKA_USERNAME=kafka-user
+    export KAFKA_PASSWORD=kafka-password
+
+    # Optional: Communication API URLs
+    export CORE_API_URL=http://localhost:8086
+    export KAFKA_MIDDLEWARE_URL=http://localhost:8090
+    ```
+
+    <Warning>
+    Never commit your `.env` file or expose sensitive credentials. Use strong, randomly generated values for `JWT_SECRET` and passwords in production.
+    </Warning>
+  </Step>
+
+  <Step title="Start Keycloak (Optional)">
+    If you want to test OAuth2 authentication, start Keycloak using Docker Compose:
+
+    ```bash
+    docker-compose up -d keycloak
+    ```
+
+    This will:
+    - Start Keycloak on `http://localhost:8080`
+    - Import the `ecommerce` realm with pre-configured client
+    - Set admin credentials to `admin/admin`
+
+    <Info>
+    The `docker-compose.yml` file includes the Keycloak configuration with realm import. The client ID is `ventas-app`.
+    </Info>
+  </Step>
+
+  <Step title="Build the application">
+    Compile and package the application using Maven:
+
+    ```bash
+    mvn clean package -DskipTests
+    ```
+
+    This creates `target/app.jar` ready for execution.
+  </Step>
+
+  <Step title="Run the application">
+    Start the Spring Boot application:
+
+    <CodeGroup>
+    ```bash Maven
+    mvn spring-boot:run
+    ```
+
+    ```bash Java JAR
+    java -jar target/app.jar
+    ```
+
+    ```bash Docker
+    docker build -t ecommerce-backend .
+    docker run -p 8081:8081 --env-file .env ecommerce-backend
+    ```
+    </CodeGroup>
+
+    You should see output indicating the application started successfully:
+
+    ```
+    Started EcommerceApplication in X.XXX seconds
+    ```
+
+    The API will be available at `http://localhost:8081/api`
+  </Step>
+</Steps>
+
+## Make Your First API Call
+
+Now that your application is running, let's register a user and authenticate!
+
+<Steps>
+  <Step title="Register a new user">
+    Create your first user account using the `/api/auth/register` endpoint:
+
+    ```bash
+    curl -X POST http://localhost:8081/api/auth/register \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "John",
+        "lastname": "Doe",
+        "email": "john.doe@example.com",
+        "password": "SecurePassword123!"
+      }'
+    ```
+
+    <Tip>
+    The `AuthController.java` validates that the name contains at least one letter. An email verification token will be sent to the provided email address.
+    </Tip>
+
+    **Expected response:**
+    ```json
+    {
+      "message": "Fuiste registrado satisfactoriamente, revisa tu casilla de correo para ingresar luego el token para activar la cuenta",
+      "user": {
+        "id": 1,
+        "name": "John",
+        "lastname": "Doe",
+        "email": "john.doe@example.com"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Verify your email (if email is configured)">
+    If you configured email properly, check your inbox for the verification token and verify your account:
+
+    ```bash
+    curl -X POST http://localhost:8081/api/auth/verify-email \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "john.doe@example.com",
+        "token": "your-verification-token"
+      }'
+    ```
+
+    **Expected response:**
+    ```json
+    {
+      "message": "Cuenta verificada exitosamente. Ya puedes iniciar sesión."
+    }
+    ```
+
+    <Note>
+    If email is not configured, you may need to manually activate the user in the database by setting `account_active = true`.
+    </Note>
+  </Step>
+
+  <Step title="Login and get your JWT token">
+    Authenticate to receive a JWT token:
+
+    ```bash
+    curl -X POST http://localhost:8081/api/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "john.doe@example.com",
+        "password": "SecurePassword123!"
+      }'
+    ```
+
+    **Expected response:**
+    ```json
+    {
+      "success": true,
+      "bearer_token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImlhdCI6MTY...",
+      "user": {
+        "id": 1,
+        "name": "John",
+        "lastname": "Doe",
+        "email": "john.doe@example.com",
+        "addresses": []
+      }
+    }
+    ```
+
+    <Info>
+    The JWT token is generated using the `JWT_SECRET` you configured. Save this token - you'll need it for authenticated requests!
+    </Info>
+  </Step>
+
+  <Step title="Make an authenticated request">
+    Use your JWT token to access protected endpoints. Let's fetch products:
+
+    ```bash
+    curl -X GET "http://localhost:8081/api/products?page=0&size=10" \
+      -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+    ```
+
+    **Expected response:**
+    ```json
+    {
+      "content": [
+        {
+          "id": 1,
+          "title": "Product Name",
+          "description": "Product description",
+          "price": 99.99,
+          "stock": 50,
+          "productCode": 1001,
+          "calification": 4.5,
+          "active": true
+        }
+      ],
+      "pageable": {
+        "pageNumber": 0,
+        "pageSize": 10
+      },
+      "totalElements": 1,
+      "totalPages": 1
+    }
+    ```
+  </Step>
+</Steps>
+
+## Key API Endpoints
+
+Here are the main endpoints you can use to explore the API:
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock">
+    ```
+    POST /api/auth/register
+    POST /api/auth/login
+    POST /api/auth/verify-email
+    POST /api/auth/logout
+    ```
+  </Card>
+  
+  <Card title="Products" icon="bag-shopping">
+    ```
+    GET  /api/products
+    GET  /api/products/{id}
+    POST /api/products/filter
+    GET  /api/products/homescreen
+    ```
+  </Card>
+  
+  <Card title="Reviews" icon="star">
+    ```
+    POST /api/products/code/{productCode}/review
+    GET  /api/products/{id}/reviews
+    GET  /api/products/code/{productCode}/review/me
+    ```
+  </Card>
+  
+  <Card title="Favorites" icon="heart">
+    ```
+    POST   /api/products/favourite/{productCode}
+    DELETE /api/products/favourite/{productCode}
+    GET    /api/products/user/favourite-products
+    ```
+  </Card>
+</CardGroup>
+
+## API Documentation
+
+Once the application is running, you can access the interactive API documentation:
+
+<Card title="Swagger UI" icon="book" href="http://localhost:8081/api/swagger-ui.html">
+  Interactive API documentation powered by SpringDoc OpenAPI
+</Card>
+
+The application includes **SpringDoc OpenAPI 2.3.0** which automatically generates comprehensive API documentation from your controllers.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/auth/login">
+    Explore all available endpoints and their parameters
+  </Card>
+  
+  <Card title="Authentication Guide" icon="key" href="/concepts/authentication">
+    Learn about JWT tokens and security configuration
+  </Card>
+  
+  <Card title="Error Handling" icon="triangle-exclamation" href="/api/auth/login">
+    Understand error responses and status codes
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/deployment">
+    Deploy your API to production
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Application fails to start - Database connection error">
+    **Problem:** `Communications link failure` or `Access denied for user`
+    
+    **Solution:**
+    - Verify MySQL is running: `mysql -u root -p`
+    - Check your `SPRING_DATASOURCE_URL`, `USERNAME`, and `PASSWORD` environment variables
+    - Ensure the database exists: `CREATE DATABASE ecommerce_db;`
+    - Verify the user has proper permissions
+  </Accordion>
+
+  <Accordion title="JWT token is invalid or expired">
+    **Problem:** `401 Unauthorized` or `Token inválido`
+    
+    **Solution:**
+    - Ensure your `JWT_SECRET` is at least 256 bits (32+ characters) for HS256 algorithm
+    - Login again to get a fresh token
+    - Check that your token is being sent in the `Authorization: Bearer <token>` header
+  </Accordion>
+
+  <Accordion title="Email verification not working">
+    **Problem:** Not receiving verification emails
+    
+    **Solution:**
+    - Verify `SPRING_MAIL_USERNAME` and `SPRING_MAIL_PASSWORD` are set correctly
+    - For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833) instead of your regular password
+    - Check spam/junk folders
+    - Review application logs for SMTP errors
+  </Accordion>
+
+  <Accordion title="Kafka connection errors">
+    **Problem:** `org.apache.kafka.common.errors.TimeoutException`
+    
+    **Solution:**
+    - Kafka is optional for basic functionality. The application will log errors but continue running
+    - To use Kafka, ensure your Kafka broker is running on the configured `KAFKA_BOOTSTRAP` address
+    - Verify `KAFKA_USERNAME` and `KAFKA_PASSWORD` match your broker's SASL configuration
+    - Set `ventas.kafka.enabled=false` in `application.properties` to disable Kafka features
+  </Accordion>
+
+  <Accordion title="Products endpoint returns empty results">
+    **Problem:** No products in the database
+    
+    **Solution:**
+    - Products are synchronized via Kafka events from the Core API
+    - For development, you can manually insert products into the database
+    - Ensure the `active` field is `true` - the API only returns active products
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+For more help, check the application logs at runtime or review the source code in `src/main/java/ar/edu/uade/ecommerce/`.
+</Info>

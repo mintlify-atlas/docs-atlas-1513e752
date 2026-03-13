@@ -1,0 +1,70 @@
+---
+title: 'Get Categories'
+api: 'GET /categories'
+description: 'Retrieve all active categories in the catalog'
+---
+
+Returns a list of all active categories registered in the system. Only categories with `active=true` are returned.
+
+## Request
+
+```bash
+curl --request GET \
+  --url https://api.example.com/categories \
+  --header 'Content-Type: application/json'
+```
+
+## Response
+
+Returns an array of category objects.
+
+<ResponseField name="categories" type="array">
+  Array of active category objects
+
+  <ResponseField name="id" type="long">
+    Unique identifier for the category
+  </ResponseField>
+
+  <ResponseField name="name" type="string">
+    Name of the category
+  </ResponseField>
+
+  <ResponseField name="active" type="boolean">
+    Indicates whether the category is active (always true in this response)
+  </ResponseField>
+
+  <ResponseField name="categoryCode" type="integer" required={false}>
+    Stable code used for cross-microservice synchronization
+  </ResponseField>
+</ResponseField>
+
+### Success Response
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Electronics",
+    "active": true,
+    "categoryCode": 100
+  },
+  {
+    "id": 2,
+    "name": "Clothing",
+    "active": true,
+    "categoryCode": 200
+  },
+  {
+    "id": 3,
+    "name": "Sports",
+    "active": true,
+    "categoryCode": 300
+  }
+]
+```
+
+## Implementation Details
+
+This endpoint is implemented in the `CategoryController.getAllCategories()` method, which retrieves only active categories from the database using the `categoryService.getAllActiveCategories()` method. Inactive categories are automatically filtered out.
+
+Source: `CategoryController.java:26-31`

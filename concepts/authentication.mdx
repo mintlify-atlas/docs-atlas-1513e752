@@ -1,0 +1,512 @@
+---
+title: 'Authentication & Authorization'
+description: 'JWT-based authentication with email verification and Keycloak integration'
+icon: 'lock'
+---
+
+## Overview
+
+The Ecommerce Backend API implements a dual authentication system:
+
+1. **User Authentication**: JWT tokens for customer sessions
+2. **Service Authentication**: Keycloak OAuth2 tokens for backend service-to-service communication
+
+## JWT Token Generation
+
+The system uses HMAC SHA-512 signing for JWT tokens with a 2-hour expiration.
+
+### JwtUtil Configuration
+
+**Token Generation** (`JwtUtil.java:55`)
+
+```java
+@Component
+public class JwtUtil {
+    @Value("${jwt.secret:}")
+    private String secret;
+    
+    private Key signingKey;
+    private final long EXPIRATION_TIME = 7200000; // 2 hours
+    
+    @PostConstruct
+    public void init() {
+        if (secret != null && !secret.isBlank()) {
+            signingKey = Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+            );
+            enabled = true;
+        }
+    }
+    
+    public String generateToken(String username) {
+        if (!enabled) {
+            throw new IllegalStateException(
+                "JWT is not configured (jwt.secret missing)"
+            );
+        }
+        
+        return Jwts.builder()
+            .setSubject(username)
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(
+                System.currentTimeMillis() + EXPIRATION_TIME
+            ))
+            .signWith(signingKey, SignatureAlgorithm.HS512)
+            .compact();
+    }
+}
+```
+
+<Note>
+The JWT secret must be at least 512 bits (64 bytes) for HS512 algorithm.
+</Note>
+
+### Token Validation
+
+**Extracting and Verifying Claims** (`JwtUtil.java:76`)
+
+```java
+public boolean validateToken(String token, String username) {
+    ensureInitialized();
+    if (!enabled) return false;
+    
+    String extractedUsername = extractUsername(token);
+    if (extractedUsername == null || username == null) {
+        return false;
+    }
+    
+    return (extractedUsername.equals(username) && 
+            !isTokenExpired(token));
+}
+
+private Claims getClaims(String token) {
+    try {
+        return Jwts.parserBuilder()
+            .setSigningKey(signingKey)
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
+    } catch (Exception ex) {
+        return null;
+    }
+}
+```
+
+## Registration Flow
+
+New users must verify their email address before accessing protected endpoints.
+
+### User Registration
+
+**Registration Endpoint** (`AuthController.java:61`)
+
+```java
+@PostMapping("/register")
+public ResponseEntity<?> register(
+    @RequestBody RegisterUserDTO registerUserDTO
+) {
+    // Validate name contains at least one letter
+    String name = registerUserDTO.getName();
+    if (name == null || !name.matches(".*[A-Za-zÁÉÍÓÚáéíóúÑñ].*")) {
+        return ResponseEntity
+            .badRequest()
+            .body(Map.of(
+                "error", 
+                "El nombre debe contener al menos una letra"
+            ));
+    }
+    
+    // Check if user already exists
+    User existingUser = authService.getUserByEmail(
+        registerUserDTO.getEmail()
+    );
+    
+    if (existingUser != null) {
+        if (existingUser.isAccountActive()) {
+            throw new IllegalStateException(
+                "La cuenta ya está activa. Inicia sesión."
+            );
+        } else {
+            // Resend verification token
+            authService.resendVerificationToken(existingUser);
+            return ResponseEntity.ok(
+                "La cuenta ya existe pero no está activa. " +
+                "Se ha reenviado el token de verificación."
+            );
+        }
+    }
+    
+    // Register new user
+    User newUser = authService.registerDTO(registerUserDTO);
+    newUser.setRole("USER");
+    
+    return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+        "message", "Revisa tu casilla de correo para activar la cuenta",
+        "user", responseDTO
+    ));
+}
+```
+
+<Info>
+Registration creates an inactive account and sends a verification email with a token.
+</Info>
+
+### Email Verification
+
+**Verification Endpoint** (`AuthController.java:97`)
+
+```java
+@PostMapping("/verify-email")
+public ResponseEntity<Map<String, String>> verifyEmail(
+    @RequestBody Map<String, String> request
+) {
+    String email = request.get("email");
+    String token = request.get("token");
+    
+    if (email == null || token == null) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Email o token faltante"));
+    }
+    
+    try {
+        boolean verified = authService.verifyEmailToken(email, token);
+        
+        if (verified) {
+            return ResponseEntity.ok(Map.of(
+                "message", 
+                "Cuenta verificada exitosamente. Ya puedes iniciar sesión."
+            ));
+        } else {
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                    "error", 
+                    "El token ingresado no es el correcto"
+                ));
+        }
+    } catch (Exception ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Token inválido"));
+    }
+}
+```
+
+<Accordion title="Email Verification Flow Diagram">
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant DB
+    participant Email
+    
+    Client->>API: POST /auth/register
+    API->>DB: Create inactive user
+    API->>Email: Send verification token
+    API-->>Client: 201 Created
+    
+    Email-->>User: Verification email
+    
+    Client->>API: POST /auth/verify-email
+    API->>DB: Verify token & activate account
+    API-->>Client: 200 OK
+```
+</Accordion>
+
+## Login Flow
+
+Authenticated users receive a JWT token valid for 2 hours.
+
+### Login Endpoint
+
+**User Login** (`AuthController.java:26`)
+
+```java
+@PostMapping("/login")
+public ResponseEntity<UserLoginResponseDTO> login(
+    @RequestBody Map<String, String> request
+) {
+    String email = request.get("email");
+    String password = request.get("password");
+    
+    if (email == null || password == null || 
+        email.isBlank() || password.isBlank()) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(failLogin());
+    }
+    
+    // Authenticate and generate token
+    String token = authService.login(email, password);
+    
+    User user = authService.getUserByEmail(email);
+    user.setSessionActive(true);
+    authService.saveUser(user);
+    
+    UserLoginResponseDTO response = new UserLoginResponseDTO();
+    response.setSuccess(true);
+    response.setBearer_token(token);
+    response.setUser(toUserDTO(user));
+    
+    return ResponseEntity.ok(response);
+}
+```
+
+**Response Format**
+
+```json
+{
+  "success": true,
+  "bearer_token": "eyJhbGciOiJIUzUxMiJ9...",
+  "user": {
+    "id": 123,
+    "name": "John",
+    "lastname": "Doe",
+    "email": "john@example.com",
+    "addresses": []
+  }
+}
+```
+
+<Tip>
+Clients should include the token in the `Authorization: Bearer <token>` header for protected requests.
+</Tip>
+
+## Session Management
+
+### JWT Authentication Filter
+
+Every request passes through the JWT filter to validate and authenticate users.
+
+**Filter Implementation** (`JwtAuthenticationFilter.java:25`)
+
+```java
+@Component
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    @Autowired
+    private JwtUtil jwtUtil;
+    
+    @Autowired
+    private UserDetailsService userDetailsService;
+    
+    @Override
+    protected void doFilterInternal(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain filterChain
+    ) throws ServletException, IOException {
+        final String authHeader = request.getHeader("Authorization");
+        String username = null;
+        String jwt = null;
+        
+        // Extract JWT from Authorization header
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+            username = jwtUtil.extractUsername(jwt);
+        }
+        
+        // Validate and set authentication
+        if (username != null && 
+            SecurityContextHolder.getContext()
+                .getAuthentication() == null) {
+            try {
+                UserDetails userDetails = 
+                    userDetailsService.loadUserByUsername(username);
+                    
+                if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                            userDetails, 
+                            null, 
+                            userDetails.getAuthorities()
+                        );
+                    authToken.setDetails(
+                        new WebAuthenticationDetailsSource()
+                            .buildDetails(request)
+                    );
+                    SecurityContextHolder.getContext()
+                        .setAuthentication(authToken);
+                }
+            } catch (UsernameNotFoundException e) {
+                // User not found, continue without authentication
+            }
+        }
+        
+        filterChain.doFilter(request, response);
+    }
+}
+```
+
+### Logout
+
+**Logout Endpoint** (`AuthController.java:122`)
+
+```java
+@PostMapping("/logout")
+public ResponseEntity<String> logout(
+    @RequestHeader("Authorization") String authHeader
+) {
+    String token = authHeader.replace("Bearer ", "");
+    String email = authService.getEmailFromToken(token);
+    
+    if (email == null) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body("Token inválido");
+    }
+    
+    User user = authService.getUserByEmail(email);
+    user.setSessionActive(false);
+    authService.saveUser(user);
+    
+    return ResponseEntity.ok("Sesión cerrada correctamente");
+}
+```
+
+<Warning>
+The logout endpoint sets `sessionActive=false` but does not invalidate the JWT token. Tokens remain valid until expiration.
+</Warning>
+
+## Spring Security Configuration
+
+The security configuration defines which endpoints require authentication.
+
+**Security Config** (`SecurityConfig.java:24`)
+
+```java
+@Configuration
+public class SecurityConfig {
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) 
+        throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(
+                    SessionCreationPolicy.STATELESS
+                )
+            )
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers(
+                    "/purchase/**", 
+                    "/cart/**", 
+                    "/cart-items/**", 
+                    "/user/**"
+                ).authenticated()
+                .anyRequest().permitAll()
+            );
+        
+        // Add JWT filter before username/password filter
+        http.addFilterBefore(
+            jwtAuthenticationFilter,
+            UsernamePasswordAuthenticationFilter.class
+        );
+        
+        return http.build();
+    }
+    
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+```
+
+<Info>
+The application uses **stateless sessions** - all authentication state is contained in the JWT token.
+</Info>
+
+## Keycloak Integration
+
+Keycloak provides OAuth2 tokens for backend service authentication when publishing events.
+
+### Token Management
+
+**Configuration** (`application.properties:55`)
+
+```properties
+keycloak.token.url=${KEYCLOAK_TOKEN_URL:http://localhost:8080/realms/ecommerce/protocol/openid-connect/token}
+keycloak.client-id=ventas-app
+keycloak.client-secret=${KEYCLOAK_CLIENT_SECRET}
+keycloak.refresh.enabled=false
+```
+
+**Token Usage** (`ECommerceEventService.java:35`)
+
+```java
+private boolean ensureBackendTokenAvailable(String context) {
+    try {
+        String token = backendTokenManager.getToken();
+        if (token == null || token.isBlank()) {
+            logger.warn(
+                "No se pudo obtener token de backend para '{}'. " +
+                "El middleware podría rechazar el evento (401).",
+                context
+            );
+            return false;
+        }
+        return true;
+    } catch (Exception ex) {
+        logger.warn(
+            "Error verificando token backend para '{}': {}",
+            context, ex.getMessage()
+        );
+        return false;
+    }
+}
+```
+
+<Note>
+The `BackendTokenManager` handles Keycloak client credentials flow and automatic token refresh.
+</Note>
+
+## Protected Endpoints
+
+Endpoints requiring authentication:
+
+| Endpoint Pattern | Purpose |
+|-----------------|----------|
+| `/purchase/**` | Purchase management |
+| `/cart/**` | Shopping cart operations |
+| `/cart-items/**` | Cart item management |
+| `/user/**` | User profile operations |
+
+**Example Protected Request**
+
+```bash
+curl -X GET https://api.example.com/api/cart \
+  -H "Authorization: Bearer eyJhbGciOiJIUzUxMiJ9..."
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Token Storage" icon="shield">
+    Store JWT tokens securely in httpOnly cookies or secure storage, never in localStorage
+  </Card>
+  <Card title="Token Expiration" icon="clock">
+    Implement token refresh logic before the 2-hour expiration
+  </Card>
+  <Card title="Password Security" icon="key">
+    Passwords are hashed with BCrypt before storage
+  </Card>
+  <Card title="Email Verification" icon="envelope">
+    All new accounts require email verification before login
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+    Understand the overall system architecture
+  </Card>
+  <Card title="User Endpoints" icon="user" href="/api/auth/register">
+    API reference for authentication endpoints
+  </Card>
+</CardGroup>

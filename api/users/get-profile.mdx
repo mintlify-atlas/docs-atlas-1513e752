@@ -1,0 +1,107 @@
+---
+title: 'Get User Profile'
+api: 'GET /user/me'
+description: 'Retrieve the authenticated user profile'
+---
+
+Returns the complete profile information for the currently authenticated user, including personal details and associated addresses.
+
+## Authentication
+
+This endpoint requires a valid Bearer token in the Authorization header.
+
+## Request
+
+```bash
+curl --request GET \
+  --url https://api.example.com/user/me \
+  --header 'Authorization: Bearer YOUR_TOKEN_HERE'
+```
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for user authentication
+</ParamField>
+
+## Response
+
+Returns a user object with complete profile information.
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the user
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  First name of the user
+</ResponseField>
+
+<ResponseField name="lastname" type="string">
+  Last name of the user
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Email address of the user
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  User role in the system
+</ResponseField>
+
+<ResponseField name="accountActive" type="boolean">
+  Whether the user account is active
+</ResponseField>
+
+<ResponseField name="sessionActive" type="boolean">
+  Whether the user has an active session
+</ResponseField>
+
+<ResponseField name="addresses" type="array">
+  List of addresses associated with the user
+
+  <ResponseField name="id" type="integer">
+    Address ID
+  </ResponseField>
+
+  <ResponseField name="description" type="string">
+    Address description or full address text
+  </ResponseField>
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "id": 123,
+  "name": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com",
+  "role": "USER",
+  "accountActive": true,
+  "sessionActive": true,
+  "addresses": [
+    {
+      "id": 1,
+      "description": "123 Main St, New York, NY 10001"
+    },
+    {
+      "id": 2,
+      "description": "456 Park Ave, New York, NY 10022"
+    }
+  ]
+}
+```
+
+### Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Returned when the token is missing, invalid, or the user session is not active
+</ResponseField>
+
+```json
+null
+```
+
+## Implementation Details
+
+This endpoint extracts the email from the JWT token in the Authorization header, retrieves the user from the database, and validates that the user has an active session. The password field is excluded from the response via `@JsonIgnore` annotation.
+
+Source: `UserController.java:23-35`
