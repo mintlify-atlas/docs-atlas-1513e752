@@ -1,0 +1,153 @@
+{
+  "projectType": "api-service",
+  "projectName": "Ecommerce Backend API",
+  "projectDescription": "Spring Boot e-commerce backend with REST APIs for product catalog, shopping cart, orders, user authentication, and event-driven integrations via Kafka.",
+  "theme": "mint",
+  "primaryColor": "#10b981",
+  "lightColor": "#34d399",
+  "darkColor": "#059669",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/authentication",
+              "concepts/event-driven"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment",
+              "configuration/database",
+              "configuration/kafka"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/aws"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/login",
+              "api/auth/register",
+              "api/auth/verify-email",
+              "api/auth/logout",
+              "api/auth/password-reset"
+            ]
+          },
+          {
+            "group": "Products",
+            "pages": [
+              "api/products/list-products",
+              "api/products/get-product",
+              "api/products/filter-products",
+              "api/products/reviews",
+              "api/products/favorites"
+            ]
+          },
+          {
+            "group": "Shopping Cart",
+            "pages": [
+              "api/cart/get-cart",
+              "api/cart/add-item",
+              "api/cart/update-item",
+              "api/cart/remove-item",
+              "api/cart/clear-cart"
+            ]
+          },
+          {
+            "group": "Orders",
+            "pages": [
+              "api/orders/create-order",
+              "api/orders/list-orders",
+              "api/orders/get-order",
+              "api/orders/cancel-order"
+            ]
+          },
+          {
+            "group": "Catalog Management",
+            "pages": [
+              "api/catalog/brands",
+              "api/catalog/categories"
+            ]
+          },
+          {
+            "group": "User Management",
+            "pages": [
+              "api/users/get-profile",
+              "api/users/update-profile",
+              "api/users/addresses"
+            ]
+          },
+          {
+            "group": "Events",
+            "pages": [
+              "api/events/receive-events",
+              "api/events/health-check"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "REST API for e-commerce operations",
+    "JWT-based authentication with email verification",
+    "Product catalog with filtering, search, and reviews",
+    "Shopping cart and order management",
+    "Event-driven architecture with Kafka integration",
+    "Multi-module event synchronization (Ventas/Inventario)",
+    "MySQL database with JPA/Hibernate",
+    "Keycloak integration for OAuth2",
+    "Docker containerization support",
+    "Email notifications via SMTP"
+  ],
+  "publicApiSurface": [
+    "POST /api/auth/login",
+    "POST /api/auth/register",
+    "POST /api/auth/verify-email",
+    "POST /api/auth/logout",
+    "GET /api/products",
+    "GET /api/products/{id}",
+    "POST /api/products/filter",
+    "POST /api/products/code/{productCode}/review",
+    "GET /api/products/{id}/reviews",
+    "POST /api/products/favourite/{productCode}",
+    "DELETE /api/products/favourite/{productCode}",
+    "GET /api/products/user/favourite-products",
+    "GET /api/cart",
+    "POST /api/cart/items",
+    "PATCH /api/cart/items/{id}",
+    "DELETE /api/cart/items/{id}",
+    "DELETE /api/cart",
+    "POST /api/purchases",
+    "GET /api/purchases",
+    "GET /api/purchases/{id}",
+    "DELETE /api/purchases/{id}",
+    "GET /api/brands",
+    "GET /api/categories",
+    "GET /api/users/me",
+    "POST /api/ecommerce/listener/events"
+  ]
+}
